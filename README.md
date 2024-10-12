@@ -1,6 +1,4 @@
 
----
-
 # Adversarial GAN for Intrusion Detection Systems (IDS)
 
 A Generative Adversarial Network (GAN) for generating adversarial network traffic to evaluate the robustness of deep learning-based Intrusion Detection Systems (IDS).
