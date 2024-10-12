@@ -1,4 +1,3 @@
-Here’s an updated **README.md** based on the provided code and project structure.
 
 ---
 
