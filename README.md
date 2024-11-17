@@ -21,6 +21,9 @@ The target IDS is a neural network trained on network traffic data for binary cl
 
 We use real or simulated network traffic data in CSV format (e.g., `train_data.csv` and `test_data.csv`), which includes both normal traffic and attack patterns. The data is split into training and test sets for evaluating the model's performance.
 
+### Dataset 
+Intrusion detection evaluation dataset (CIC-IDS2017) ("https://www.unb.ca/cic/datasets/ids-2017.html")
+
 ### GAN Architecture
 
 - **Generator:** A neural network that takes random noise as input and generates synthetic network traffic that resembles normal traffic. The goal is to produce traffic that can fool the IDS into classifying it as benign.
