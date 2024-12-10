@@ -1,0 +1,28 @@
+import tkinter as tk
+
+class UserInterface:
+    def __init__(self, master):
+        self.master = master
+        master.title("Adversarial GAN for IDS")
+        
+        self.label = tk.Label(master, text="Select an action:")
+        self.label.pack()
+        
+        self.train_button = tk.Button(master, text="Train IDS Model", command=self.train_ids)
+        self.train_button.pack()
+        
+        self.evaluate_button = tk.Button(master, text="Evaluate Model", command=self.evaluate_model)
+        self.evaluate_button.pack()
+    
+    def train_ids(self):
+        # Call the training function
+        pass
+    
+    def evaluate_model(self):
+        # Call the evaluation function
+        pass
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    ui = UserInterface(root)
+    root.mainloop()
