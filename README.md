@@ -118,10 +118,6 @@ python evaluation/evaluate_model.py
 
 This script will measure the accuracy of the IDS on both normal and adversarial traffic, displaying the evasion rate.
 
-## Results and Findings
-
-- **Evasion Rate:** The GAN-generated adversarial traffic successfully evades the IDS with an average evasion rate of [XX%].
-- **Baseline Accuracy:** The accuracy of the IDS on normal traffic was [YY%], while its accuracy dropped to [ZZ%] when tested on adversarial traffic.
 
 ## Future Work
 
