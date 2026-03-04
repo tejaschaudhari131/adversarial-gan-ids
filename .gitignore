@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (too large for git)
+data/*.csv
+data/*.pcap
+*.h5
+
+# Results and outputs
+results/
+logs/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
