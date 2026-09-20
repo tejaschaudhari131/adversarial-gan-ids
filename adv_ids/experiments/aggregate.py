@@ -80,6 +80,74 @@ def matched_eps_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def matched_l2_gan_vs_pgd(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Closest mean-L2 GAN vs PGD (and FGSM) pair per dataset/model/defense.
+
+    Sweep cells are compared after multi-seed aggregation. If no pair exists,
+    the row is omitted rather than invented. ``l2_gap`` documents mismatch.
+    """
+    usable = [r for r in rows if not str(r.get("model", "")).startswith("transfer:")]
+    if usable and "evasion_rate" in usable[0] and "evasion_rate_mean" not in usable[0]:
+        usable = aggregate_rows(usable)
+    grouped: dict[tuple, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    for row in usable:
+        grouped[(row.get("dataset"), row.get("model"), row.get("defense"))][str(row.get("attack"))].append(row)
+
+    def _l2(row: dict[str, Any]) -> float | None:
+        v = row.get("mean_l2_perturbation_mean", row.get("mean_l2_perturbation"))
+        return float(v) if _is_number(v) else None
+
+    def _ev(row: dict[str, Any]) -> float | None:
+        v = row.get("evasion_rate_mean", row.get("evasion_rate"))
+        return float(v) if _is_number(v) else None
+
+    out: list[dict[str, Any]] = []
+    for key, attacks in sorted(grouped.items(), key=lambda kv: tuple(str(x) for x in kv[0])):
+        gans = [r for r in attacks.get("gan", []) if _l2(r) is not None]
+        pgds = [r for r in attacks.get("pgd", []) if _l2(r) is not None]
+        fgsms = [r for r in attacks.get("fgsm", []) if _l2(r) is not None]
+        if not gans or not pgds:
+            continue
+        best_g, best_p, best_gap = None, None, None
+        for g in gans:
+            for p in pgds:
+                gap = abs(_l2(g) - _l2(p))
+                if best_gap is None or gap < best_gap:
+                    best_g, best_p, best_gap = g, p, gap
+        best_f, f_gap = None, None
+        if fgsms:
+            for f in fgsms:
+                gap = abs(_l2(best_g) - _l2(f))
+                if f_gap is None or gap < f_gap:
+                    best_f, f_gap = f, gap
+        rec = {
+            "dataset": key[0],
+            "model": key[1],
+            "defense": key[2],
+            "n_seeds": best_g.get("n_seeds", 1),
+            "gan_eps": best_g.get("eps"),
+            "gan_l2": _l2(best_g),
+            "gan_evasion": _ev(best_g),
+            "pgd_eps": best_p.get("eps"),
+            "pgd_l2": _l2(best_p),
+            "pgd_evasion": _ev(best_p),
+            "l2_gap_gan_pgd": best_gap,
+            "note": (
+                "closest mean-L2 pair from the executed eps sweep; "
+                f"L2 gap={best_gap:.4f}"
+            ),
+        }
+        if best_f is not None:
+            rec.update({
+                "fgsm_eps": best_f.get("eps"),
+                "fgsm_l2": _l2(best_f),
+                "fgsm_evasion": _ev(best_f),
+                "l2_gap_gan_fgsm": f_gap,
+            })
+        out.append(rec)
+    return out
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not rows:
@@ -137,6 +205,7 @@ def export_suite_tables(
     ]
     agg = aggregate_rows(rows)
     matched = matched_eps_rows(rows)
+    matched_l2 = matched_l2_gan_vs_pgd(rows)
     paths = {
         "per_seed_csv": str(write_csv(dest / f"{prefix}_per_seed.csv", rows)),
         "per_seed_md": str(write_markdown(dest / f"{prefix}_per_seed.md", rows, raw_md_cols)),
@@ -155,6 +224,19 @@ def export_suite_tables(
         ),
         "matched_eps_csv": str(write_csv(dest / f"{prefix}_matched_eps.csv", matched)),
         "matched_eps_md": str(write_markdown(dest / f"{prefix}_matched_eps.md", matched)),
+        "matched_l2_csv": str(write_csv(dest / f"{prefix}_matched_l2.csv", matched_l2)),
+        "matched_l2_md": str(
+            write_markdown(
+                dest / f"{prefix}_matched_l2.md",
+                matched_l2,
+                [
+                    "dataset", "model", "defense", "n_seeds",
+                    "gan_eps", "gan_l2", "gan_evasion",
+                    "pgd_eps", "pgd_l2", "pgd_evasion", "l2_gap_gan_pgd",
+                    "fgsm_eps", "fgsm_l2", "fgsm_evasion", "note",
+                ],
+            )
+        ),
     }
     note = dest / f"{prefix}_README.md"
     note.write_text(

@@ -33,8 +33,21 @@ Homepage: https://www.unb.ca/cic/datasets/ids-2017.html
 | --- | --- | --- | --- |
 | `data/raw/cicids2017/engelen_WTMC2021_dataset.zip` | 333,841,436 | `4d535da19795d85376ae1397d161329e3b06fc47d9a5a68cd9be2cd7ecee0f2a` | https://intrusion-detection.distrinet-research.be/WTMC2021/Dataset/dataset.zip |
 
-Contents: `Monday|Tuesday|Wednesday|Thursday|Friday-WorkingHours.csv` (~1.15 GB uncompressed).  
-This VM extracted **Friday only** (`282,607,319` bytes, 547,915 flows: BENIGN 291433, PortScan 159151, DDoS 95123, Bot 738 + Attempted).
+Contents: `Monday|Tuesday|Wednesday|Thursday|Friday-WorkingHours.csv` (~1.15 GB uncompressed).
+
+This VM extracted **all five days**. Friday also sits at the zip top level.
+
+| Day file | Rows | Notes |
+| --- | --- | --- |
+| `Friday-WorkingHours.csv` (top-level + `week/`) | 547,915 | BENIGN 291433, PortScan 159151, DDoS 95123, Bot 738 + Attempted |
+| `week/Monday-WorkingHours.csv` | 371,749 | extracted locally from the same zip |
+| `week/Tuesday-WorkingHours.csv` | 322,003 | |
+| `week/Wednesday-WorkingHours.csv` | 496,779 | |
+| `week/Thursday-WorkingHours.csv` | 362,368 | |
+| **Week concat** | **2,100,814** | `data/raw/cicids2017/week/` |
+
+Long suites: `configs/cicids_engelen_long.yaml` (Friday + week) and
+`configs/cicids_engelen_friday_long.yaml` (Friday only). Dumps stay gitignored.
 
 Engelen headers use fixed-CICFlowMeter names (`Dst Port`, `Total Fwd Packet`, `FWD Init Win Bytes`); the loader aliases them onto the CIC-IDS2017 feature list.
 

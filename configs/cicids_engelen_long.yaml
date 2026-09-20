@@ -1,0 +1,77 @@
+# Engelen-corrected CIC-IDS2017: full Friday + extra extracted days.
+# No max_samples. Multi-seed MLP + RF, eps sweep, longer GAN.
+name: cicids_engelen_long
+seeds: [42, 43, 44]
+synthetic: false
+test_size: 0.2
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+export_tables: true
+tables_dir: results/tables
+tables_prefix: cicids_engelen_long
+
+datasets:
+  - name: cicids2017
+    tag: cicids2017_engelen_friday
+    path: data/raw/cicids2017/Friday-WorkingHours.csv
+    synthetic: false
+    allow_synthetic_fallback: false
+  - name: cicids2017
+    tag: cicids2017_engelen_week
+    path: data/raw/cicids2017/week
+    synthetic: false
+    allow_synthetic_fallback: false
+
+models:
+  - mlp
+  - random_forest
+
+ids:
+  epochs: 8
+  batch_size: 256
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.05
+  - name: fgsm
+    eps: 0.10
+  - name: fgsm
+    eps: 0.15
+  - name: fgsm
+    eps: 0.25
+  - name: pgd
+    eps: 0.05
+    steps: 10
+    step_size: 0.01
+  - name: pgd
+    eps: 0.10
+    steps: 10
+    step_size: 0.02
+  - name: pgd
+    eps: 0.15
+    steps: 10
+    step_size: 0.03
+  - name: pgd
+    eps: 0.25
+    steps: 10
+    step_size: 0.04
+  - name: gan
+    eps: 0.15
+    epochs: 20
+    batch_size: 256
+    lambda_ids: 4.0
+  - name: gan
+    eps: 0.25
+    epochs: 20
+    batch_size: 256
+    lambda_ids: 4.0
+
+transfer:
+  surrogate: mlp
+  targets: [random_forest]
+  attack: pgd
+  eps: 0.15
+  steps: 10

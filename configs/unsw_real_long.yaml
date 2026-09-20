@@ -1,0 +1,70 @@
+# Official UNSW-NB15 train/test, multi-seed, eps sweep, longer GAN.
+# Requires data/raw/unsw-nb15/UNSW_NB15_{training,testing}-set.csv
+name: unsw_real_long
+seeds: [42, 43, 44]
+synthetic: false
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+export_tables: true
+tables_dir: results/tables
+tables_prefix: unsw_real_long
+
+datasets:
+  - name: unsw_nb15
+    path: data/raw/unsw-nb15
+    synthetic: false
+    allow_synthetic_fallback: false
+
+models:
+  - mlp
+  - random_forest
+
+ids:
+  epochs: 10
+  batch_size: 256
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.05
+  - name: fgsm
+    eps: 0.10
+  - name: fgsm
+    eps: 0.15
+  - name: fgsm
+    eps: 0.25
+  - name: pgd
+    eps: 0.05
+    steps: 10
+    step_size: 0.01
+  - name: pgd
+    eps: 0.10
+    steps: 10
+    step_size: 0.02
+  - name: pgd
+    eps: 0.15
+    steps: 10
+    step_size: 0.03
+  - name: pgd
+    eps: 0.25
+    steps: 10
+    step_size: 0.04
+  - name: gan
+    eps: 0.15
+    epochs: 24
+    batch_size: 256
+    lambda_ids: 4.0
+  - name: gan
+    eps: 0.25
+    epochs: 24
+    batch_size: 256
+    lambda_ids: 4.0
+
+transfer:
+  surrogate: mlp
+  targets: [random_forest]
+  attack: pgd
+  eps: 0.15
+  steps: 10

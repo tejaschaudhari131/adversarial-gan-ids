@@ -12,6 +12,7 @@ from adv_ids.experiments.aggregate import (
     aggregate_rows,
     export_suite_tables,
     matched_eps_rows,
+    matched_l2_gan_vs_pgd,
 )
 
 
@@ -65,13 +66,33 @@ def test_matched_eps_rows_side_by_side():
     assert "transfer" not in rec["attacks"]
 
 
+def test_matched_l2_picks_closest_pair():
+    rows = [
+        _row(42, "unsw_nb15", "mlp", "gan", 0.15, 0.20, 0.40),
+        _row(43, "unsw_nb15", "mlp", "gan", 0.15, 0.22, 0.42),
+        _row(42, "unsw_nb15", "mlp", "pgd", 0.05, 0.30, 0.20),
+        _row(43, "unsw_nb15", "mlp", "pgd", 0.05, 0.32, 0.22),
+        _row(42, "unsw_nb15", "mlp", "pgd", 0.25, 0.90, 1.40),
+        _row(43, "unsw_nb15", "mlp", "pgd", 0.25, 0.92, 1.42),
+        _row(42, "unsw_nb15", "mlp", "fgsm", 0.10, 0.50, 0.41),
+        _row(43, "unsw_nb15", "mlp", "fgsm", 0.10, 0.52, 0.43),
+    ]
+    pairs = matched_l2_gan_vs_pgd(rows)
+    assert len(pairs) == 1
+    rec = pairs[0]
+    assert rec["gan_eps"] == 0.15
+    assert rec["pgd_eps"] == 0.05
+    assert rec["fgsm_eps"] == 0.10
+    assert rec["l2_gap_gan_pgd"] < 0.30
+
+
 def test_export_suite_tables_writes_csv_and_md(tmp_path):
     rows = [
         _row(42, "unsw_nb15", "mlp", "fgsm", 0.25, 0.3, 0.9),
         _row(43, "unsw_nb15", "mlp", "fgsm", 0.25, 0.4, 1.0),
     ]
     paths = export_suite_tables(rows, tmp_path, "unit", caption="unit test")
-    for key in ("per_seed_csv", "aggregate_md", "matched_eps_csv", "readme"):
+    for key in ("per_seed_csv", "aggregate_md", "matched_eps_csv", "matched_l2_md", "readme"):
         assert Path(paths[key]).is_file()
         assert Path(paths[key]).stat().st_size > 0
     text = Path(paths["aggregate_md"]).read_text(encoding="utf-8")

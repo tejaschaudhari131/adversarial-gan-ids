@@ -1,0 +1,13 @@
+| dataset | model | attack | defense | eps | n_seeds | evasion_rate_mean | evasion_rate_std | mean_l2_perturbation_mean | mean_l2_perturbation_std | clean_accuracy_mean | accuracy_drop_mean |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| unsw_nb15 | mlp | fgsm | none | 0.0500 | 3 | 0.4542 | 0.1024 | 0.2137 | 0.0068 | 0.8644 | 0.2354 |
+| unsw_nb15 | mlp | fgsm | none | 0.1000 | 3 | 0.7301 | 0.2076 | 0.4154 | 0.0142 | 0.8644 | 0.3783 |
+| unsw_nb15 | mlp | fgsm | none | 0.1500 | 3 | 0.8451 | 0.1290 | 0.6145 | 0.0216 | 0.8644 | 0.4380 |
+| unsw_nb15 | mlp | fgsm | none | 0.2500 | 3 | 0.9215 | 0.0704 | 1.0061 | 0.0361 | 0.8644 | 0.4774 |
+| unsw_nb15 | mlp | gan | none | 0.1500 | 3 | 0.3769 | 0.1331 | 0.3275 | 0.0255 | 0.8644 | 0.1934 |
+| unsw_nb15 | mlp | gan | none | 0.2500 | 3 | 0.7215 | 0.0572 | 0.4281 | 0.0095 | 0.8644 | 0.3734 |
+| unsw_nb15 | mlp | pgd | none | 0.0500 | 3 | 0.5993 | 0.0323 | 0.2001 | 0.0072 | 0.8644 | 0.3111 |
+| unsw_nb15 | mlp | pgd | none | 0.1000 | 3 | 0.8745 | 0.0980 | 0.3770 | 0.0258 | 0.8644 | 0.4536 |
+| unsw_nb15 | mlp | pgd | none | 0.1500 | 3 | 0.9305 | 0.0601 | 0.5520 | 0.0519 | 0.8644 | 0.4829 |
+| unsw_nb15 | mlp | pgd | none | 0.2500 | 3 | 0.9172 | 0.0712 | 0.8936 | 0.1009 | 0.8644 | 0.4759 |
+| unsw_nb15 | transfer:mlp->random_forest | pgd | none | 0.1500 | 3 | 0.1563 | 0.0851 | 0.5021 | 0.0406 | 0.9055 | 0.0715 |

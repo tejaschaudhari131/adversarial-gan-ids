@@ -1,0 +1,2 @@
+dataset,model,defense,n_seeds,gan_eps,gan_l2,gan_evasion,pgd_eps,pgd_l2,pgd_evasion,l2_gap_gan_pgd,note,fgsm_eps,fgsm_l2,fgsm_evasion,l2_gap_gan_fgsm
+unsw_nb15,mlp,none,3,0.15,0.3274993598461151,0.37687773909517847,0.1,0.37696964542071026,0.8745138792622646,0.04947028557459515,closest mean-L2 pair from the executed eps sweep; L2 gap=0.0495,0.1,0.41544527808825177,0.7300852995611745,0.08794591824213666

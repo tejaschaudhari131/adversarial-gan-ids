@@ -23,6 +23,21 @@ def test_load_medium_yaml():
     assert {ds["name"] for ds in cfg["datasets"]} == {"cicids2017", "unsw_nb15"}
 
 
+def test_load_real_long_yamls():
+    unsw = load_config(ROOT / "configs" / "unsw_real_long.yaml")
+    assert unsw["synthetic"] is False
+    assert len(unsw["seeds"]) >= 3
+    assert "mlp" in unsw["models"] and "random_forest" in unsw["models"]
+    cic = load_config(ROOT / "configs" / "cicids_engelen_long.yaml")
+    assert cic["synthetic"] is False
+    assert any(ds.get("tag") == "cicids2017_engelen_friday" for ds in cic["datasets"])
+    assert any(ds.get("tag") == "cicids2017_engelen_week" for ds in cic["datasets"])
+    friday = load_config(ROOT / "configs" / "cicids_engelen_friday_long.yaml")
+    assert friday["synthetic"] is False
+    assert len(friday["datasets"]) == 1
+    assert friday["datasets"][0].get("tag") == "cicids2017_engelen_friday"
+
+
 def test_merge_dict_nested():
     out = merge_dict({"a": {"b": 1, "c": 2}, "d": 3}, {"a": {"c": 9}, "e": 4})
     assert out["a"]["b"] == 1
