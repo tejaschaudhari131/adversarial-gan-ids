@@ -1,0 +1,40 @@
+# Official UNSW-NB15 train/test export (not synthetic).
+# Requires data/raw/unsw-nb15/UNSW_NB15_{training,testing}-set.csv
+name: unsw_real_official
+seeds: [42]
+synthetic: false
+test_size: 0.2
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+export_tables: true
+tables_dir: results/tables
+tables_prefix: unsw_real
+
+datasets:
+  - name: unsw_nb15
+    path: data/raw/unsw-nb15
+    synthetic: false
+    allow_synthetic_fallback: false
+
+models:
+  - mlp
+
+ids:
+  epochs: 8
+  batch_size: 256
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.15
+  - name: pgd
+    eps: 0.15
+    steps: 10
+    step_size: 0.03
+  - name: gan
+    eps: 0.15
+    epochs: 8
+    batch_size: 256
+    lambda_ids: 4.0

@@ -1,0 +1,33 @@
+name: transfer_focus
+seed: 42
+synthetic: true
+n_benign: 2000
+n_attack: 1000
+test_size: 0.2
+val_size: 0.1
+
+datasets:
+  - name: cicids2017
+    synthetic: true
+
+models:
+  - mlp
+  - deep_mlp
+  - cnn1d
+  - random_forest
+
+ids:
+  epochs: 6
+  batch_size: 128
+
+attacks:
+  - name: pgd
+    eps: 0.15
+    steps: 10
+
+transfer:
+  surrogate: mlp
+  targets: [deep_mlp, cnn1d, random_forest]
+  attack: pgd
+  eps: 0.15
+  steps: 10

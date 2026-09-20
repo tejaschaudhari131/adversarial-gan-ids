@@ -1,0 +1,42 @@
+# Engelen-corrected CIC-IDS2017 Friday (real flows). Bounded sample for a small eval.
+# Requires data/raw/cicids2017/Friday-WorkingHours.csv (extracted from dataset.zip).
+name: cicids2017_engelen_friday
+seeds: [42]
+synthetic: false
+max_samples: 20000
+test_size: 0.2
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+export_tables: true
+tables_dir: results/tables
+tables_prefix: cicids_engelen_friday
+
+datasets:
+  - name: cicids2017
+    path: data/raw/cicids2017/Friday-WorkingHours.csv
+    synthetic: false
+    allow_synthetic_fallback: false
+    max_samples: 20000
+
+models:
+  - mlp
+
+ids:
+  epochs: 6
+  batch_size: 256
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.15
+  - name: pgd
+    eps: 0.15
+    steps: 10
+    step_size: 0.03
+  - name: gan
+    eps: 0.15
+    epochs: 6
+    batch_size: 256
+    lambda_ids: 4.0

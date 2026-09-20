@@ -1,0 +1,52 @@
+# Tiny synthetic sweep for CI, first-run, and debugging. Completes in minutes on CPU.
+name: quick_synthetic
+seed: 42
+synthetic: true
+n_benign: 1200
+n_attack: 600
+test_size: 0.2
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+
+datasets:
+  - name: cicids2017
+    synthetic: true
+  - name: unsw_nb15
+    synthetic: true
+
+models:
+  - mlp
+  - random_forest
+
+ids:
+  epochs: 6
+  batch_size: 128
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.15
+  - name: pgd
+    eps: 0.15
+    steps: 6
+    step_size: 0.03
+  - name: gan
+    eps: 0.15
+    epochs: 8
+    batch_size: 128
+    lambda_ids: 4.0
+
+defense:
+  name: adv_train
+  eps: 0.15
+  steps: 3
+  epochs: 5
+
+transfer:
+  surrogate: mlp
+  targets: [random_forest]
+  attack: pgd
+  eps: 0.15
+  steps: 6

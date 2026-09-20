@@ -1,0 +1,4 @@
+dataset,model,attack,defense,eps,n_seeds,seeds,clean_accuracy_mean,clean_accuracy_std,adversarial_accuracy_mean,adversarial_accuracy_std,accuracy_drop_mean,accuracy_drop_std,evasion_rate_mean,evasion_rate_std,attack_success_rate_mean,attack_success_rate_std,mean_l2_perturbation_mean,mean_l2_perturbation_std,mean_linf_perturbation_mean,mean_linf_perturbation_std
+unsw_nb15,mlp,fgsm,none,0.15,1,42,0.8436695331098479,0.0,0.3369285332555993,0.0,0.5067409998542487,0.0,0.9850777985030577,0.0,0.9860584134827495,0.0,0.62852543592453,0.0,0.14992651343345642,0.0
+unsw_nb15,mlp,gan,none,0.15,1,42,0.8436695331098479,0.0,0.7711946752174125,0.0,0.07247485789243546,0.0,0.16749698958751447,0.0,0.19734403953057442,0.0,0.41484534740448,0.0,0.1499239057302475,0.0
+unsw_nb15,mlp,pgd,none,0.15,1,42,0.8436695331098479,0.0,0.33334547927901664,0.0,0.5103240538308313,0.0,0.9920430666068519,0.0,0.9925659578222888,0.0,0.5781225562095642,0.0,0.14998692274093628,0.0

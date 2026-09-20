@@ -1,0 +1,2 @@
+dataset,model,defense,eps,n_seeds,attacks,fgsm_evasion,fgsm_l2,fgsm_acc_drop,gan_evasion,gan_l2,gan_acc_drop,pgd_evasion,pgd_l2,pgd_acc_drop
+unsw_nb15,mlp,none,0.15,1,"fgsm,gan,pgd",0.9850777985030577,0.62852543592453,0.5067409998542487,0.16749698958751447,0.41484534740448,0.07247485789243546,0.9920430666068519,0.5781225562095642,0.5103240538308313

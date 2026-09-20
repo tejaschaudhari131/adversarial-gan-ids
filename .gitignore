@@ -8,6 +8,8 @@ build/
 .venv/
 venv/
 env/
+.pytest_cache/
+.ruff_cache/
 
 # IDE / OS
 .vscode/
@@ -15,16 +17,27 @@ env/
 .DS_Store
 Thumbs.db
 
-# Data (real CIC-IDS2017 is huge; keep the generator instead)
+# Data — real dumps and generated CSVs (keep README / .gitkeep)
 data/*.csv
 data/*.pcap
 data/*.zip
+data/raw/**
+!data/raw/README.md
+!data/raw/.gitkeep
+data/processed/
 
-# Checkpoints and outputs
-artifacts/*.pt
-artifacts/*.joblib
-artifacts/*.json
-results/
+# Checkpoints
+artifacts/**
+!artifacts/.gitkeep
+
+# Run outputs (keep docs + templates)
+results/**
+!results/README.md
+!results/tables/
+!results/tables/**
+!results/examples/
+!results/examples/**
+
 logs/
 *.log
 *.h5
