@@ -114,15 +114,22 @@ Real dumps (gitignored) after a successful fetch:
 ```bash
 python scripts/download_datasets.py                 # UNSW official pair + Engelen CIC zip
 python run.py experiment-suite --config configs/unsw_real.yaml
+python run.py experiment-suite --config configs/unsw_real_long.yaml
 python run.py experiment-suite --config configs/cicids_engelen_friday.yaml
+python run.py experiment-suite --config configs/cicids_engelen_long.yaml
 ```
 
-Official CIC `MachineLearningCSV.zip` hosts currently return an HTML portal;
-the Engelen-corrected zip does not. Hashes and probe notes:
+`unsw_real_long` / `cicids_engelen_long` are the multi-seed, eps-sweep, longer-GAN
+suites (MLP + RF, closest-L2 GAN vs PGD). Friday-only fallback:
+`configs/cicids_engelen_friday_long.yaml`. Official CIC
+`MachineLearningCSV.zip` hosts currently return an HTML portal; the
+Engelen-corrected zip does not. Hashes and probe notes:
 [docs/DATA_CARD.md](docs/DATA_CARD.md).
 
-Aggregated CSV/Markdown from that run: [`results/tables/medium_synthetic_*.md`](results/tables/).
-Do not treat those cells as CIC/UNSW paper results.
+Executed tables: [`results/tables/`](results/tables/)
+(`unsw_real_long_*`, `cicids_engelen_long_*`, plus earlier smokes).
+Do not treat synthetic `medium_synthetic_*` cells as CIC/UNSW paper results.
+Working draft: [docs/paper/DRAFT.md](docs/paper/DRAFT.md).
 
 ## Use real CSVs
 
@@ -158,18 +165,17 @@ python run.py experiment-suite --config configs/full.yaml
 | `results/<suite>/suite_metrics.md` | Attack × model × dataset table |
 | `results/<suite>/config.json` | Hyperparameters actually used |
 
-Empty paper tables live in `results/tables/` as **templates**. Fill them only
-from runs you execute. The medium synthetic suite writes
-`medium_synthetic_per_seed.*`, `medium_synthetic_aggregate.*`, and
-`medium_synthetic_matched_eps.*` there.
+Paper tables live in `results/tables/` and are filled only from executed
+runs. Long real-data suites write `*_aggregate.*`, `*_per_seed.*`,
+`*_matched_eps.*`, and `*_matched_l2.*` (closest mean-L2 GAN vs PGD).
 
 ## Project layout
 
 ```
 run.py                      CLI
 adv_ids/                    Research package (data, models, attacks, defenses)
-configs/                    quick.yaml · medium.yaml · full.yaml · multi_dataset.yaml
-docs/                       RESEARCH_PLAN · PAPER_OUTLINE · RELATED_WORK · THREAT_MODEL · METRICS · DATASETS
+configs/                    quick · medium · full · unsw_real_long · cicids_engelen_long
+docs/                       RESEARCH_PLAN · PAPER_OUTLINE · paper/DRAFT · RELATED_WORK · THREAT_MODEL · METRICS · DATASETS
 tests/                      preprocess, masks, metrics, attacks, fixtures, catalog
 .github/workflows/ci.yml    ruff + pytest + synthetic pipeline
 ```
@@ -193,6 +199,7 @@ GitHub Actions runs the same three steps on every push/PR.
 | --- | --- |
 | [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) | 8–12 week plan (literature → paper draft) |
 | [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md) | 2–3 month paper skeleton, figure/table plan, writing checklist |
+| [docs/paper/DRAFT.md](docs/paper/DRAFT.md) | Working draft; numbers only from executed `results/tables/` |
 | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) | AdvGAN, IDSGAN, DEMGAN, constrained NIDS attacks, CICIDS caveats |
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | White-box / grey-box / transfer, mask, non-claims |
 | [docs/METRICS.md](docs/METRICS.md) | Evasion rate vs. ASR, L2, protocol |

@@ -257,7 +257,8 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
         for raw_ds in config.get("datasets", ["cicids2017"]):
             ds_cfg = _normalize_dataset_cfg(raw_ds, defaults)
             ds_name = ds_cfg["name"]
-            logger.info("=== dataset %s ===", ds_name)
+            ds_tag = ds_cfg.get("tag") or ds_name
+            logger.info("=== dataset %s (tag=%s) ===", ds_name, ds_tag)
             try:
                 path = resolve_dataset_path(
                     ds_name,
@@ -283,7 +284,7 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                     logger.warning("Skipping dataset %s:\n%s", ds_name, exc)
                     continue
 
-            ds_art = ensure_dir(artifacts_root / f"seed{seed}" / ds_name)
+            ds_art = ensure_dir(artifacts_root / f"seed{seed}" / ds_tag)
             data = prepare_dataset(
                 path,
                 test_size=float(ds_cfg.get("test_size", 0.2)),
@@ -308,10 +309,10 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                 models[model.name] = model
                 clean = evaluate_clean(
                     model, data["X_test"], data["y_test"],
-                    results_dir=out_root / f"seed{seed}" / ds_name / model.name,
+                    results_dir=out_root / f"seed{seed}" / ds_tag / model.name,
                 )
                 write_json(
-                    out_root / f"seed{seed}" / ds_name / model.name / "clean.json",
+                    out_root / f"seed{seed}" / ds_tag / model.name / "clean.json",
                     {k: v for k, v in clean.items() if k != "classification_report"},
                 )
 
@@ -324,11 +325,12 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                         continue
                     metrics = evaluate_attack_on_model(
                         model, data["X_test"], data["y_test"], X_adv, attack_idx,
-                        results_dir=out_root / f"seed{seed}" / ds_name / model.name, tag=atk["name"],
+                        results_dir=out_root / f"seed{seed}" / ds_tag / model.name,
+                        tag=f"{atk['name']}_eps{float(atk.get('eps', 0.15)):.2f}",
                     )
                     row = {
                         "seed": seed,
-                        "dataset": ds_name,
+                        "dataset": ds_tag,
                         "model": model.name,
                         "attack": atk["name"],
                         "defense": "none",
@@ -340,7 +342,7 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                         "attack_success_rate": metrics["attack_success_rate"],
                         "mean_l2_perturbation": metrics["mean_l2_perturbation"],
                         "mean_linf_perturbation": metrics.get("mean_linf_perturbation"),
-                        "label": f"{ds_name}/{model.name}/{atk['name']}/ε={atk.get('eps', 0.15)}",
+                        "label": f"{ds_tag}/{model.name}/{atk['name']}/ε={atk.get('eps', 0.15)}",
                     }
                     summary_rows.append(row)
                     comparison_rows.append(row)
@@ -371,11 +373,12 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                         continue
                     metrics = evaluate_attack_on_model(
                         defended, data["X_test"], data["y_test"], X_adv, attack_idx,
-                        results_dir=out_root / f"seed{seed}" / ds_name / defended.name, tag=atk["name"],
+                        results_dir=out_root / f"seed{seed}" / ds_tag / defended.name,
+                        tag=f"{atk['name']}_eps{float(atk.get('eps', 0.15)):.2f}",
                     )
                     summary_rows.append({
                         "seed": seed,
-                        "dataset": ds_name,
+                        "dataset": ds_tag,
                         "model": defended.name,
                         "attack": atk["name"],
                         "defense": "adv_train",
@@ -387,7 +390,7 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                         "attack_success_rate": metrics["attack_success_rate"],
                         "mean_l2_perturbation": metrics["mean_l2_perturbation"],
                         "mean_linf_perturbation": metrics.get("mean_linf_perturbation"),
-                        "label": f"{ds_name}/{defended.name}/{atk['name']}/ε={atk.get('eps')}",
+                        "label": f"{ds_tag}/{defended.name}/{atk['name']}/ε={atk.get('eps')}",
                     })
 
             if transfer_cfg and len(models) >= 2:
@@ -406,13 +409,13 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                             continue
                         metrics = evaluate_attack_on_model(
                             target, data["X_test"], data["y_test"], X_adv, attack_idx,
-                            results_dir=out_root / f"seed{seed}" / ds_name / "transfer",
+                            results_dir=out_root / f"seed{seed}" / ds_tag / "transfer",
                             tag=f"{surrogate.name}_to_{target.name}_{attack_name}",
                         )
                         row = {
                             **describe_transfer(surrogate, target, attack_name),
                             "seed": seed,
-                            "dataset": ds_name,
+                            "dataset": ds_tag,
                             "eps": float(transfer_cfg.get("eps", 0.15)),
                             "evasion_rate": metrics["evasion_rate"],
                             "attack_success_rate": metrics["attack_success_rate"],
@@ -422,7 +425,7 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                         transfer_rows.append(row)
                         summary_rows.append({
                             "seed": seed,
-                            "dataset": ds_name,
+                            "dataset": ds_tag,
                             "model": f"transfer:{surrogate.name}->{target.name}",
                             "attack": attack_name,
                             "defense": "none",
@@ -435,6 +438,16 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
                             "mean_l2_perturbation": metrics["mean_l2_perturbation"],
                             "mean_linf_perturbation": metrics.get("mean_linf_perturbation"),
                         })
+
+            _checkpoint_suite(
+                summary_rows,
+                out_root,
+                root,
+                config,
+                run_name,
+                seeds,
+                note=f"partial after seed={seed} dataset={ds_tag}",
+            )
 
     save_attack_comparison(comparison_rows, out_root / "attack_comparison.png")
     save_evasion_vs_l2(summary_rows, out_root / "evasion_vs_l2.png")
@@ -450,22 +463,7 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
             mat[i, j] = r["evasion_rate"]
         save_transfer_heatmap(mat, row_labels, col_labels, out_root / "transfer_heatmap.png")
 
-    table_paths = {}
-    if config.get("export_tables", True):
-        prefix = config.get("tables_prefix") or run_name
-        caption = (
-            f"Executed suite `{run_name}` seeds={seeds}. "
-            "Numbers are from this run only; do not mix with other papers."
-        )
-        table_paths = export_suite_tables(summary_rows, out_root, prefix, caption=caption)
-        if config.get("tables_dir"):
-            public = export_suite_tables(
-                summary_rows,
-                root / config["tables_dir"],
-                prefix,
-                caption=caption,
-            )
-            table_paths.update({f"public_{k}": v for k, v in public.items()})
+    table_paths = _export_public_tables(summary_rows, out_root, root, config, run_name, seeds)
 
     payload = {
         "name": run_name,
@@ -481,6 +479,58 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
     _write_markdown_table(out_root / "suite_metrics.md", summary_rows)
     logger.info("Experiment suite written to %s", out_root)
     return payload
+
+
+def _export_public_tables(
+    summary_rows: list[dict[str, Any]],
+    out_root: Path,
+    root: Path,
+    config: dict[str, Any],
+    run_name: str,
+    seeds: list[Any],
+    note: str = "",
+) -> dict[str, str]:
+    if not config.get("export_tables", True) or not summary_rows:
+        return {}
+    prefix = config.get("tables_prefix") or run_name
+    caption = (
+        f"Executed suite `{run_name}` seeds={seeds}. "
+        "Numbers are from this run only; do not mix with other papers."
+        + (f" {note}" if note else "")
+    )
+    table_paths = export_suite_tables(summary_rows, out_root, prefix, caption=caption)
+    if config.get("tables_dir"):
+        public = export_suite_tables(
+            summary_rows,
+            root / config["tables_dir"],
+            prefix,
+            caption=caption,
+        )
+        table_paths.update({f"public_{k}": v for k, v in public.items()})
+    return table_paths
+
+
+def _checkpoint_suite(
+    summary_rows: list[dict[str, Any]],
+    out_root: Path,
+    root: Path,
+    config: dict[str, Any],
+    run_name: str,
+    seeds: list[Any],
+    note: str,
+) -> None:
+    """Flush tables after each dataset so a later OOM does not lose earlier cells."""
+    if not summary_rows:
+        return
+    write_json(out_root / "suite_metrics_partial.json", {
+        "name": run_name,
+        "n_rows": len(summary_rows),
+        "results": summary_rows,
+        "note": note,
+    })
+    _write_markdown_table(out_root / "suite_metrics.md", summary_rows)
+    _export_public_tables(summary_rows, out_root, root, config, run_name, seeds, note=note)
+    logger.info("Checkpointed %s suite rows (%s)", len(summary_rows), note)
 
 
 def _write_markdown_table(path: Path, rows: list[dict[str, Any]]) -> None:

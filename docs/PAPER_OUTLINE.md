@@ -4,7 +4,8 @@ Workshop / arXiv length (6–10 pages + appendix). Map every section to a file
 in this repo so the write-up cannot drift from the code. Week numbers follow
 [RESEARCH_PLAN.md](RESEARCH_PLAN.md).
 
-This is an outline, not a draft. Do not paste synthetic smoke-test numbers
+This is an outline. The working draft with executed numbers lives in
+[paper/DRAFT.md](paper/DRAFT.md). Do not paste synthetic smoke-test numbers
 from `results/examples/` or `results/tables/medium_synthetic_*.md` into the
 camera-ready main table.
 

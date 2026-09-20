@@ -3,7 +3,8 @@
 A student-sized plan that this repository is meant to support. Weeks are
 sequential; overlap literature with engineering in week 1–2. The code already
 covers the scaffolding for weeks 3–7 so calendar time can go to *real data*,
-*seeds*, and *writing*, not to rewriting loaders.
+*seeds*, and *writing*, not to rewriting loaders. The working draft is
+[paper/DRAFT.md](paper/DRAFT.md); fill it only from executed `results/tables/`.
 
 ## Week 1 — Problem, threat model, literature
 

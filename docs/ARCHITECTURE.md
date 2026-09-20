@@ -12,8 +12,9 @@ adv_ids/
   evaluation/                  metrics, plots, GAN-vs-MLP protocol
   experiments/                 YAML-driven suite + multi-seed aggregate tables
   utils/                       seed, config, JSON I/O
-configs/                       quick.yaml, medium.yaml, unsw_real.yaml, cicids_engelen_friday.yaml, full.yaml
-docs/                          research plan, paper outline, threat model, metrics, datasets
+configs/                       quick.yaml, medium.yaml, unsw_real.yaml, unsw_real_long.yaml,
+                               cicids_engelen_friday.yaml, cicids_engelen_long.yaml, full.yaml
+docs/                          research plan, paper outline, paper/DRAFT.md, threat model, metrics, datasets
 tests/                         preprocess, masks, metrics, attacks, fixtures, catalog
 ```
 
