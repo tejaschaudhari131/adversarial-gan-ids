@@ -30,6 +30,11 @@ python run.py setup-data --dataset-name unsw_nb15 --fetch
 | `unsw_real_long_transfer_heatmap.png` | MLP→RF PGD transfer |
 | `suite_cicids_engelen_friday.md` | Engelen Friday, 20k-row sample, MLP |
 | `cicids_engelen_friday_attack_comparison.png` | FGSM / PGD / GAN on that sample |
+| `suite_cicids_engelen_long.md` | full Friday + five-day week, 3 seeds, MLP + RF |
+| `cicids_engelen_long_evasion_vs_l2.png` | closest-L2 view of that long suite |
+| `cicids_engelen_long_attack_comparison.png` | FGSM / PGD / GAN bars (3 seeds) |
+| `cicids_engelen_long_aggregate_evasion.png` | mean ± std evasion |
+| `cicids_engelen_long_transfer_heatmap.png` | MLP→RF PGD transfer |
 
 Aggregated CSV/Markdown for the medium suite (committed, executed numbers only):
 [`results/tables/medium_synthetic_*.md`](../tables/).

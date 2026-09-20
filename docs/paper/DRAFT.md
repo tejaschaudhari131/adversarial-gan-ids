@@ -31,11 +31,16 @@ versus PGD `eps=0.10`, L2 gap 0.050 — still leaves PGD ahead (0.875 vs
 0.377 evasion). Transfer of PGD from the MLP onto Random Forest is much
 weaker (0.156 ± 0.085).
 
-CIC-IDS2017 is evaluated on the **Engelen-corrected** regeneration, not the
-official MachineLearningCSV zip (those hosts returned an HTML portal here).
-A prior 20k-row Friday smoke test is on disk; a full-Friday plus five-day
-multi-seed sweep is the companion experiment (`cicids_engelen_long`).
-Feature-space success is not a packet. This is not a live exploit kit.
+On the **Engelen-corrected CIC-IDS2017** dump (official zip hosts returned
+an HTML portal here), the ranking flips. Full Friday (547,915 flows; train
+383,296 / val 54,757 / test 109,514; 78 features; three seeds) gives MLP
+clean accuracy 0.997. A 20-epoch GAN at `eps=0.25` evades 0.997 at L2 0.542;
+the closest PGD (`eps=0.10`, L2 0.602, gap 0.061) evades 0.947. The five-day
+week concat (2,100,814 flows) is the same direction: GAN `eps=0.15` evades
+0.956 at L2 0.340 versus closest PGD `eps=0.05` (L2 0.276, evasion 0.891).
+MLP→RF PGD transfer is near-total on both CIC slices (0.994 / 0.998),
+unlike UNSW. Friday is still PortScan / DDoS / Bot-heavy. Feature-space
+success is not a packet. This is not a live exploit kit.
 
 ---
 
@@ -229,14 +234,19 @@ Filled only from executed files. Main tables:
 - [`results/tables/unsw_real_long_aggregate.md`](../../results/tables/unsw_real_long_aggregate.md)
 - [`results/tables/unsw_real_long_matched_l2.md`](../../results/tables/unsw_real_long_matched_l2.md)
 - [`results/tables/unsw_real_long_per_seed.md`](../../results/tables/unsw_real_long_per_seed.md)
-- Engelen long tables: `results/tables/cicids_engelen_long_*.md` (companion
-  sweep; see §6.3 if the run has finished)
+- [`results/tables/cicids_engelen_long_aggregate.md`](../../results/tables/cicids_engelen_long_aggregate.md)
+- [`results/tables/cicids_engelen_long_matched_l2.md`](../../results/tables/cicids_engelen_long_matched_l2.md)
+- [`results/tables/cicids_engelen_long_per_seed.md`](../../results/tables/cicids_engelen_long_per_seed.md)
 
 Plots (committed copies):
 [`results/examples/unsw_real_long_evasion_vs_l2.png`](../../results/examples/unsw_real_long_evasion_vs_l2.png),
 [`results/examples/unsw_real_long_attack_comparison.png`](../../results/examples/unsw_real_long_attack_comparison.png),
 [`results/examples/unsw_real_long_aggregate_evasion.png`](../../results/examples/unsw_real_long_aggregate_evasion.png),
-[`results/examples/unsw_real_long_transfer_heatmap.png`](../../results/examples/unsw_real_long_transfer_heatmap.png).
+[`results/examples/unsw_real_long_transfer_heatmap.png`](../../results/examples/unsw_real_long_transfer_heatmap.png),
+[`results/examples/cicids_engelen_long_evasion_vs_l2.png`](../../results/examples/cicids_engelen_long_evasion_vs_l2.png),
+[`results/examples/cicids_engelen_long_attack_comparison.png`](../../results/examples/cicids_engelen_long_attack_comparison.png),
+[`results/examples/cicids_engelen_long_aggregate_evasion.png`](../../results/examples/cicids_engelen_long_aggregate_evasion.png),
+[`results/examples/cicids_engelen_long_transfer_heatmap.png`](../../results/examples/cicids_engelen_long_transfer_heatmap.png).
 Earlier single-seed official split: `results/examples/unsw_real_evasion_vs_l2.png`.
 
 ### 6.1 Official UNSW-NB15 (3 seeds, MLP)
@@ -292,46 +302,97 @@ grey-box estimate on this dump.
 training in §6.1 raised GAN evasion at `eps=0.15` from 0.17 to 0.38
 (mean) and at `eps=0.25` to 0.72. Still below matched-L2 PGD.
 
-### 6.3 Engelen CIC-IDS2017
+### 6.3 Engelen CIC-IDS2017 (full Friday + week, 3 seeds)
 
 **Prior 20k Friday smoke** (`cicids_engelen_friday`, seed 42,
 `results/tables/cicids_engelen_friday_per_seed.md`): clean acc 0.9920;
 FGSM/PGD/GAN all evasion 1.000 at `eps=0.15` (L2 0.961 / 0.902 / 0.417).
 That sample is PortScan/DDoS-heavy and too small for a ranking.
 
-**Full Friday + week, 3 seeds.** Config `cicids_engelen_long.yaml`.
-Friday full split (seed 42 log): 383,296 / 54,757 / 109,514.
-Tables from that executed sweep:
+**Full Friday + five-day week.** Config `cicids_engelen_long.yaml`,
+seeds 42/43/44. Friday prepare: 383,296 / 54,757 / 109,514, 78 features.
+Week prepare: 1,470,014 / 210,002 / 420,005 (2,100,814 raw rows; 793
+Inf/NaN dropped). MLP 8 epochs; GAN 20 epochs. Source:
+`cicids_engelen_long_aggregate.md`.
 
-<!-- FILLED AFTER cicids_engelen_long COMPLETES -->
+**Table 4.** Full Friday (MLP clean acc 0.9968; RF clean 0.9973).
 
-_If `results/tables/cicids_engelen_long_aggregate.md` exists, copy its
-MLP rows here. Do not invent. Until then this subsection only records
-the setup and the 20k smoke._
+| attack | eps | evasion mean | evasion std | L2 mean | acc drop |
+| --- | --- | --- | --- | --- | --- |
+| FGSM | 0.05 | 0.7162 | 0.0778 | 0.2267 | 0.3331 |
+| FGSM | 0.10 | 0.7164 | 0.0777 | 0.4517 | 0.3332 |
+| FGSM | 0.15 | 0.7164 | 0.0777 | 0.6732 | 0.3332 |
+| FGSM | 0.25 | 0.7164 | 0.0777 | 1.1163 | 0.3332 |
+| PGD | 0.05 | 0.8884 | 0.0293 | 0.2903 | 0.4132 |
+| PGD | 0.10 | 0.9465 | 0.0140 | 0.6022 | 0.4402 |
+| PGD | 0.15 | 0.9681 | 0.0070 | 0.8688 | 0.4503 |
+| PGD | 0.25 | 0.9841 | 0.0041 | 1.2141 | 0.4577 |
+| GAN (20 ep) | 0.15 | 0.9933 | 0.0050 | 0.4194 | 0.4620 |
+| GAN (20 ep) | 0.25 | 0.9972 | 0.0027 | 0.5417 | 0.4630 |
+| transfer MLP→RF PGD | 0.15 | 0.9937 | 0.0037 | 0.8200 | 0.4626 |
+
+**Table 5.** Five-day week concat (MLP clean acc 0.9896; RF clean 0.9917).
+
+| attack | eps | evasion mean | evasion std | L2 mean | acc drop |
+| --- | --- | --- | --- | --- | --- |
+| FGSM | 0.05 | 0.7747 | 0.1248 | 0.2577 | 0.1620 |
+| FGSM | 0.10 | 0.7728 | 0.1141 | 0.5096 | 0.1621 |
+| FGSM | 0.15 | 0.7786 | 0.1006 | 0.7608 | 0.1633 |
+| FGSM | 0.25 | 0.8133 | 0.0539 | 1.2628 | 0.1706 |
+| PGD | 0.05 | 0.8905 | 0.0359 | 0.2757 | 0.1868 |
+| PGD | 0.10 | 0.9115 | 0.0249 | 0.4721 | 0.1912 |
+| PGD | 0.15 | 0.9112 | 0.0191 | 0.6307 | 0.1911 |
+| PGD | 0.25 | 0.9024 | 0.0226 | 0.9501 | 0.1893 |
+| GAN (20 ep) | 0.15 | 0.9555 | 0.0554 | 0.3397 | 0.2004 |
+| GAN (20 ep) | 0.25 | 0.9490 | 0.0601 | 0.5660 | 0.1990 |
+| transfer MLP→RF PGD | 0.15 | 0.9982 | 0.0006 | 0.6082 | 0.2105 |
+
+**Table 6.** Closest matched-L2 GAN vs PGD (`cicids_engelen_long_matched_l2.md`).
+
+| slice | GAN (eps / L2 / ev) | closest PGD (eps / L2 / ev) | L2 gap |
+| --- | --- | --- | --- |
+| Friday | 0.25 / 0.5417 / 0.9972 | 0.10 / 0.6022 / 0.9465 | 0.0605 |
+| Week | 0.15 / 0.3397 / 0.9555 | 0.05 / 0.2757 / 0.8905 | 0.0640 |
+
+On both Engelen slices the 20-epoch GAN evades **more** than the closest-L2
+PGD. That is the opposite of official UNSW (§6.1). Friday FGSM is flat
+across the eps sweep (0.716) — extra L∞ budget increases L2 but not
+evasion. Do not read either ranking as “CIC-IDS2017 SOTA”; Friday is one
+day and the week file is Engelen-corrected CICFlowMeter, not the official
+MachineLearningCSV most prior work cites.
 
 ### 6.4 Negative / unstable cells
 
 GAN evasion on UNSW has a large seed std at `eps=0.15` (0.133). Seed 43
 was a weak GAN (log: evasion 0.274 at L2 0.299) while seed 42 reached
 0.527. Report the mean **and** the std; do not pick the best seed.
-PGD at `eps=0.25` is not strictly stronger than `eps=0.15` (0.917 vs
-0.931) — the extra budget does not always help once the mask binds.
+PGD at `eps=0.25` is not strictly stronger than `eps=0.15` on UNSW (0.917
+vs 0.931) or on the Engelen week (0.902 vs 0.911) — extra budget does not
+always help once the mask binds. Friday FGSM is the clearest saturation:
+evasion stays 0.716 from `eps=0.05` to `0.25` while L2 grows from 0.23 to
+1.12. Week GAN `eps=0.25` (0.949) is slightly *below* GAN `eps=0.15`
+(0.956).
 
 ---
 
 ## 7. Discussion
 
-**Matched L2 matters.** A paper that says “GAN vs PGD at `eps=0.15`”
-on this UNSW run would compare L2 0.33 to L2 0.55. The closest-L2 pair
-is the fairer one, and it still favours PGD.
+**Matched L2 matters, and the winner is dataset-dependent.** A paper that
+says “GAN vs PGD at `eps=0.15`” on the UNSW long run would compare L2
+0.33 to L2 0.55. The closest-L2 pair is the fairer one, and on official
+UNSW it still favours PGD (0.875 vs 0.377). On Engelen Friday and the
+week concat the closest-L2 pair favours the 20-epoch GAN (Table 6).
+We do not collapse those two dumps into one ranking.
 
-**Transfer asymmetry.** MLP→RF PGD evasion 0.16 ± 0.09 on official UNSW
-is far below white-box 0.93. A remote attacker with only a forest
-target, or only a surrogate, does not get the white-box number.
+**Transfer is not a constant.** MLP→RF PGD evasion 0.16 ± 0.09 on
+official UNSW is far below white-box 0.93. The same protocol on Engelen
+Friday / week is 0.994 / 0.998. A remote attacker with only a forest
+target does not automatically get either number.
 
-**Friday-only CIC.** Even the full Friday file is one day (DDoS /
+**Friday-only / week-concat CIC.** Full Friday is one day (DDoS /
 PortScan / Bot). The week concat adds Monday–Thursday but is still
-Engelen-corrected CICFlowMeter, not a production sensor.
+Engelen-corrected CICFlowMeter, not a production sensor and not the
+official MachineLearningCSV.
 
 **Feature space ≠ packets.** A 0.15 shift in `sload` or `Flow Bytes/s`
 may be unrealisable. We do not claim CICFlowMeter would emit the
@@ -358,11 +419,13 @@ perturbed row.
 On official UNSW-NB15, constrained PGD remains the stronger
 feature-space evasion against a 10-epoch MLP once cost is measured in
 mean L2. A 24-epoch conditional GAN closes some of the gap relative to
-an 8-epoch smoke test but does not overtake matched-L2 PGD. Transfer to
-Random Forest is an order of magnitude weaker. CIC results belong on
-the Engelen dump and must stay labelled Friday-only or week-concat, not
-“CIC-IDS2017 SOTA.” The artefacts to rerun are the YAML configs and
-`docs/DATA_CARD.md`.
+an 8-epoch smoke test but does not overtake matched-L2 PGD, and
+MLP→RF transfer stays weak (0.16). On the Engelen-corrected CIC dump
+the same protocol ranks the 20-epoch GAN above closest-L2 PGD on both
+full Friday and the five-day concat, and transfer is near-total. Those
+two sentences are both true and must stay labelled by dump, split, and
+L2 — not collapsed into “GAN wins” or “CIC-IDS2017 SOTA.” The
+artefacts to rerun are the YAML configs and `docs/DATA_CARD.md`.
 
 ---
 
