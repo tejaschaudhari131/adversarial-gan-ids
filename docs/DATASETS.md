@@ -25,9 +25,29 @@ data/
   processed/                    # optional cached tables; gitignored
 ```
 
-`python run.py prepare --dataset data/raw/cicids2017` concatenates every `*.csv`
-under that directory. Column names are stripped; `Timestamp` / flow-id / IP
-columns are dropped when present.
+`python run.py prepare --dataset-name cicids2017 --dataset data/raw/cicids2017`
+concatenates every `*.csv` under that directory. Column names are stripped;
+`Timestamp` / flow-id / IP columns are dropped when present.
+
+If the folder is empty or missing, `prepare` / `check-data` / `setup-data`
+exit with code 2 and print homepage, example filenames, checksum notes, and
+the next command. Do not guess a path.
+
+```bash
+python run.py check-data --dataset-name cicids2017
+python run.py check-data --dataset-name cicids2018
+python run.py check-data --dataset-name unsw_nb15
+python run.py setup-data --dataset-name unsw_nb15 --fetch   # optional public training CSV
+```
+
+Catalog + layout live in `adv_ids/data/catalog.py`. Tiny official-schema
+fixtures (12 rows, committed) are under `tests/fixtures/` so loaders can be
+tested without multi-GB dumps:
+
+```bash
+python run.py prepare --dataset-name unsw_nb15 \
+  --dataset tests/fixtures/unsw_nb15_official_sample.csv
+```
 
 ## CIC-IDS2017
 
@@ -72,7 +92,12 @@ the Engelen et al. regeneration.
 - **Preferred files:** `UNSW_NB15_training-set.csv` and `UNSW_NB15_testing-set.csv`
   (42 features + `attack_cat` + binary `label`). This repo uses the numeric
   columns and factorizes `proto` / `service` / `state`.
-- **CLI:** `python run.py pipeline --dataset-name unsw_nb15 --dataset data/raw/unsw-nb15 --synthetic`
+- **CLI:** `python run.py pipeline --dataset-name unsw_nb15 --dataset data/raw/unsw-nb15`
+- **Optional fetch:** `python run.py setup-data --dataset-name unsw_nb15 --fetch`
+  tries public copies of `UNSW_NB15_training-set.csv` (tens of MB, gitignored).
+  CIC day files are **not** auto-downloaded.
+- **Fixture:** `tests/fixtures/unsw_nb15_official_sample.csv` matches the
+  official column order (`id` … `attack_cat`,`label`).
 
 ## CIC-IoT-2023 (optional stretch)
 

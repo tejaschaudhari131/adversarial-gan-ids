@@ -25,8 +25,10 @@ paragraph you will not silently change later.
 - Download a **subset** of CSE-CIC-IDS2018 (the three days listed in
   [DATASETS.md](DATASETS.md)) and the UNSW-NB15 official train/test CSVs.
 - Do **not** commit the dumps. Put them under `data/raw/...`.
-- Run `python run.py prepare --dataset-name cicids2017 --dataset data/raw/cicids2017`
+- Run `python run.py check-data --dataset-name cicids2017` then
+  `python run.py prepare --dataset-name cicids2017 --dataset data/raw/cicids2017`
   and inspect `artifacts/dataset_meta.json` (class balance, dropped inf/NaN).
+  If files are missing the CLI prints URLs — do not invent a path.
 - Decide: official CIC dump vs. Engelen-cleaned (prefer cleaned for the paper).
 - Fix seeds, train/val/test ratios, and whether rare classes are dropped or
   grouped (“Other”).
@@ -109,11 +111,14 @@ actually assume.
 
 ## Week 10 — Writing
 
+- Follow the section map in [PAPER_OUTLINE.md](PAPER_OUTLINE.md).
 - Related work from [RELATED_WORK.md](RELATED_WORK.md); threat model from
   [THREAT_MODEL.md](THREAT_MODEL.md); metrics from [METRICS.md](METRICS.md).
 - Figures: robustness bars, evasion-vs-L2, transfer heatmap, confusion
   matrices. All generated from `results/<run>/`, not redrawn by hand.
 - Repro appendix: commit hash, configs, hardware, seeds.
+- Protocol check only: `python run.py experiment-suite --config configs/medium.yaml`
+  (synthetic; appendix C). Real tables come from `configs/full.yaml`.
 
 **Exit:** draft (workshop / arXiv length).
 

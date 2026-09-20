@@ -60,6 +60,18 @@ A **same-schema synthetic generator** is first-class so CI and a first clone
 work without multi-GB downloads. Synthetic numbers are smoke-test artefacts,
 not paper results.
 
+Layout check and optional UNSW fetch (no CIC multi-GB downloads):
+
+```bash
+python run.py check-data --dataset-name unsw_nb15
+python run.py setup-data --dataset-name unsw_nb15          # instructions only
+python run.py setup-data --dataset-name unsw_nb15 --fetch  # public training CSV
+python run.py prepare --dataset-name cicids2017            # fails with URLs if missing
+```
+
+Tiny committed schema fixtures (12 rows, not traffic) live under
+`tests/fixtures/`. Use them to test loaders without official dumps.
+
 ## Method
 
 1. Clean inf/NaN, drop duplicate `.1` / leakage columns, min-max scale,
@@ -92,6 +104,16 @@ Multi-model / multi-attack / transfer sweep (still synthetic, still minutes):
 ```bash
 python run.py experiment-suite --config configs/quick.yaml
 ```
+
+Longer multi-seed synthetic sweep (3 seeds, MLP + Random Forest, matched-`eps`
+FGSM / PGD / GAN with L2 reported). Completes on CPU; writes real tables:
+
+```bash
+python run.py experiment-suite --config configs/medium.yaml
+```
+
+Aggregated CSV/Markdown from that run: [`results/tables/medium_synthetic_*.md`](results/tables/).
+Do not treat those cells as CIC/UNSW paper results.
 
 ## Use real CSVs
 
@@ -128,16 +150,18 @@ python run.py experiment-suite --config configs/full.yaml
 | `results/<suite>/config.json` | Hyperparameters actually used |
 
 Empty paper tables live in `results/tables/` as **templates**. Fill them only
-from runs you execute.
+from runs you execute. The medium synthetic suite writes
+`medium_synthetic_per_seed.*`, `medium_synthetic_aggregate.*`, and
+`medium_synthetic_matched_eps.*` there.
 
 ## Project layout
 
 ```
 run.py                      CLI
 adv_ids/                    Research package (data, models, attacks, defenses)
-configs/                    quick.yaml · full.yaml · multi_dataset.yaml
-docs/                       RESEARCH_PLAN · RELATED_WORK · THREAT_MODEL · METRICS · DATASETS
-tests/                      preprocess, masks, metrics, attacks
+configs/                    quick.yaml · medium.yaml · full.yaml · multi_dataset.yaml
+docs/                       RESEARCH_PLAN · PAPER_OUTLINE · RELATED_WORK · THREAT_MODEL · METRICS · DATASETS
+tests/                      preprocess, masks, metrics, attacks, fixtures, catalog
 .github/workflows/ci.yml    ruff + pytest + synthetic pipeline
 ```
 
@@ -159,6 +183,7 @@ GitHub Actions runs the same three steps on every push/PR.
 | Doc | Contents |
 | --- | --- |
 | [docs/RESEARCH_PLAN.md](docs/RESEARCH_PLAN.md) | 8–12 week plan (literature → paper draft) |
+| [docs/PAPER_OUTLINE.md](docs/PAPER_OUTLINE.md) | 2–3 month paper skeleton, figure/table plan, writing checklist |
 | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) | AdvGAN, IDSGAN, DEMGAN, constrained NIDS attacks, CICIDS caveats |
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | White-box / grey-box / transfer, mask, non-claims |
 | [docs/METRICS.md](docs/METRICS.md) | Evasion rate vs. ASR, L2, protocol |

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from adv_ids.data.catalog import DatasetLayoutError, require_dataset_files
 from adv_ids.data.schemas import normalize_dataset_name
 from adv_ids.data.synthetic import generate_synthetic
 
@@ -95,19 +96,11 @@ def resolve_dataset_path(
 ) -> Path:
     """Return a CSV path, generating a synthetic stand-in when requested."""
     name = normalize_dataset_name(dataset_name)
-    if dataset_path:
-        path = Path(dataset_path)
-        if path.exists():
-            return path
-        raise FileNotFoundError(f"Dataset not found: {path}")
     if synthetic:
         out = Path(output_dir) / f"synthetic_{name}.csv"
         generate_synthetic(name, n_benign=n_benign, n_attack=n_attack, seed=seed, output_path=out)
         return out
-    default = Path(DEFAULT_RAW_LAYOUT[name])
-    if default.exists():
-        return default
-    raise FileNotFoundError(
-        f"No --dataset path for '{name}' and {default} is missing. "
-        "Download the CSVs (see docs/DATASETS.md) or pass --synthetic."
-    )
+    try:
+        return require_dataset_files(name, dataset_path)
+    except DatasetLayoutError:
+        raise

@@ -18,6 +18,14 @@ results/
     <dataset>/<model>/evaluation_<attack>.json
   tables/
     template_attack_comparison.md  # headers only; fill from a real run
+    medium_synthetic_per_seed.*    # executed multi-seed synthetic suite
+    medium_synthetic_aggregate.*
+    medium_synthetic_matched_eps.*
+  medium_synthetic/
+    config.json
+    suite_metrics.md
+    evasion_vs_l2.png
+    aggregate_evasion.png
 ```
 
 The experiment suite refuses to invent cells: if an attack is skipped (e.g.

@@ -18,8 +18,10 @@ if str(ROOT) not in sys.path:
 from adv_ids.attacks.fgsm import fgsm_attack
 from adv_ids.attacks.gan_attack import GANAttack
 from adv_ids.attacks.pgd import pgd_attack
+from adv_ids.data.catalog import DatasetLayoutError
 from adv_ids.data.loaders import resolve_dataset_path
 from adv_ids.data.preprocess import prepare_dataset
+from adv_ids.data.setup import check_dataset, print_status, setup_dataset
 from adv_ids.evaluation.protocol import evaluate_adversarial, evaluate_attack_on_model, evaluate_clean
 from adv_ids.experiments.runner import run_experiment_suite, run_single_pipeline
 from adv_ids.training.gan import train_adversarial_gan
@@ -216,6 +218,20 @@ def cmd_experiment_suite(args) -> dict:
     return payload
 
 
+def cmd_check_data(args) -> dict:
+    status = check_dataset(args.dataset_name, root=ROOT)
+    print_status(status)
+    if not status["ready"] and not args.synthetic:
+        raise DatasetLayoutError(status["hint"])
+    return status
+
+
+def cmd_setup_data(args) -> dict:
+    status = setup_dataset(args.dataset_name, root=ROOT, fetch=bool(getattr(args, "fetch", False)))
+    print_status(status)
+    return status
+
+
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--dataset", help="Path to a CSV file or a directory of CSVs.")
@@ -244,6 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--lambda-ids", type=float, default=4.0, help="Weight on fool-the-IDS loss.")
     common.add_argument("--clean-only", action="store_true")
     common.add_argument("--quick", action="store_true", help="Tiny run for smoke tests.")
+    common.add_argument("--fetch", action="store_true", help="For setup-data: try public mirrors.")
     common.add_argument("-v", "--verbose", action="store_true")
 
     p = argparse.ArgumentParser(
@@ -258,6 +275,8 @@ def build_parser() -> argparse.ArgumentParser:
         ("train-attack", "Train or materialise an attack (GAN; FGSM/PGD are example-time)."),
         ("evaluate", "Measure clean metrics, evasion rate, ASR, and accuracy drop."),
         ("pipeline", "Prepare + train IDS + train GAN + evaluate."),
+        ("check-data", "Verify data/raw layout; fail with download instructions if missing."),
+        ("setup-data", "Print layout / optionally fetch a public UNSW training CSV."),
     ]:
         sub.add_parser(name, parents=[common], help=help_text, add_help=True)
     suite = sub.add_parser("experiment-suite", parents=[common], help="Run a YAML/JSON experiment sweep.")
@@ -271,15 +290,21 @@ def main(argv: list[str] | None = None) -> int:
     _apply_quick(args)
     _setup_logging(getattr(args, "verbose", False))
     command = args.command or "pipeline"
-    {
-        "prepare": cmd_prepare,
-        "train-ids": cmd_train_ids,
-        "train-gan": cmd_train_gan,
-        "train-attack": cmd_train_attack,
-        "evaluate": cmd_evaluate,
-        "pipeline": cmd_pipeline,
-        "experiment-suite": cmd_experiment_suite,
-    }[command](args)
+    try:
+        {
+            "prepare": cmd_prepare,
+            "train-ids": cmd_train_ids,
+            "train-gan": cmd_train_gan,
+            "train-attack": cmd_train_attack,
+            "evaluate": cmd_evaluate,
+            "pipeline": cmd_pipeline,
+            "experiment-suite": cmd_experiment_suite,
+            "check-data": cmd_check_data,
+            "setup-data": cmd_setup_data,
+        }[command](args)
+    except DatasetLayoutError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     return 0
 
 
