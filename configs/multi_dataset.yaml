@@ -1,0 +1,52 @@
+# Multi-dataset sweep with synthetic fallback. Use after downloading real CSVs
+# or keep synthetic: true to compare schemas without the multi-GB downloads.
+name: multi_dataset
+seed: 42
+synthetic: true
+n_benign: 4000
+n_attack: 2000
+test_size: 0.2
+val_size: 0.1
+label_mode: binary
+results_dir: results
+artifacts_dir: artifacts
+
+datasets:
+  - name: cicids2017
+    synthetic: true
+  - name: cicids2018
+    synthetic: true
+  - name: unsw_nb15
+    synthetic: true
+
+models:
+  - mlp
+  - cnn1d
+  - random_forest
+
+ids:
+  epochs: 8
+  batch_size: 256
+
+attacks:
+  - name: fgsm
+    eps: 0.10
+  - name: pgd
+    eps: 0.10
+    steps: 10
+  - name: gan
+    eps: 0.15
+    epochs: 12
+
+defense:
+  name: adv_train
+  eps: 0.10
+  steps: 5
+  epochs: 6
+
+transfer:
+  surrogate: mlp
+  targets: [cnn1d, random_forest]
+  attack: pgd
+  eps: 0.10
+  steps: 10

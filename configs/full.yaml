@@ -1,0 +1,61 @@
+# Full-scale run. Point `path` at downloaded CSVs (see docs/DATASETS.md).
+# If a path is missing the suite falls back to the same-schema synthetic generator
+# unless allow_synthetic_fallback is false.
+name: full_research
+seed: 42
+synthetic: false
+test_size: 0.15
+val_size: 0.15
+label_mode: binary
+max_samples: 250000
+results_dir: results
+artifacts_dir: artifacts
+
+datasets:
+  - name: cicids2017
+    path: data/raw/cicids2017
+    allow_synthetic_fallback: true
+  - name: cicids2018
+    path: data/raw/cse-cic-ids2018
+    max_files: 3
+    allow_synthetic_fallback: true
+  - name: unsw_nb15
+    path: data/raw/unsw-nb15
+    allow_synthetic_fallback: true
+
+models:
+  - mlp
+  - deep_mlp
+  - cnn1d
+  - random_forest
+
+ids:
+  epochs: 12
+  batch_size: 256
+  lr: 0.001
+
+attacks:
+  - name: fgsm
+    eps: 0.15
+  - name: pgd
+    eps: 0.15
+    steps: 20
+    step_size: 0.02
+  - name: gan
+    eps: 0.15
+    epochs: 40
+    batch_size: 256
+    lambda_ids: 4.0
+
+defense:
+  name: adv_train
+  eps: 0.15
+  steps: 7
+  epochs: 10
+
+transfer:
+  surrogate: mlp
+  targets: [deep_mlp, cnn1d, random_forest]
+  attack: pgd
+  eps: 0.15
+  steps: 20

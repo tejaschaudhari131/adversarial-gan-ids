@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check adv_ids tests run.py
+      - name: Unit tests
+        run: pytest -q
+      - name: Synthetic pipeline smoke test
+        run: python run.py pipeline --synthetic --quick
+      - name: Check artifacts
+        run: |
+          test -f results/evaluation_metrics.json
+          test -f results/robustness_summary.png
