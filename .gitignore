@@ -5,36 +5,31 @@ __pycache__/
 *.egg-info/
 dist/
 build/
-*.egg
-
-# Virtual environments
+.venv/
 venv/
 env/
-.venv/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Data files (too large for git)
+# Data (real CIC-IDS2017 is huge; keep the generator instead)
 data/*.csv
 data/*.pcap
-*.h5
+data/*.zip
 
-# Results and outputs
+# Checkpoints and outputs
+artifacts/*.pt
+artifacts/*.joblib
+artifacts/*.json
 results/
 logs/
 *.log
+*.h5
+*.keras
 
 # Jupyter
 .ipynb_checkpoints/
-
-# Environment variables
 .env
