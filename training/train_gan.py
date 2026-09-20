@@ -1,115 +1,114 @@
-import tensorflow as tf
-import numpy as np
-import os
+"""Train an adversarial GAN that perturbs attack flows to evade a frozen IDS."""
+
+from __future__ import annotations
+
+import json
 import logging
-from models.generator import build_generator
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
+
 from models.discriminator import build_discriminator
+from models.generator import apply_perturbation, build_generator
+from training.train_ids import load_ids
 
 logger = logging.getLogger(__name__)
 
 
-def train_gan(data_path, latent_dim=100, batch_size=64, epochs=10000,
-              learning_rate=0.0002, log_interval=1000, output_dir="models"):
-    """
-    Train a GAN to generate adversarial network traffic.
-
-    Args:
-        data_path: Path to real network traffic CSV.
-        latent_dim: Dimension of the generator's input noise vector.
-        batch_size: Training batch size.
-        epochs: Number of training epochs.
-        learning_rate: Adam optimizer learning rate.
-        log_interval: Print progress every N epochs.
-        output_dir: Directory to save generator and discriminator models.
-
-    Returns:
-        Tuple of (generator, discriminator) trained models.
-    """
-    if not os.path.isfile(data_path):
-        raise FileNotFoundError(f"Data file not found: {data_path}")
-
-    logger.info("Loading real network traffic from %s", data_path)
-    real_data = np.loadtxt(data_path, delimiter=',')
-
-    # Instantiate generator and discriminator
-    generator = build_generator(input_dim=latent_dim, output_dim=real_data.shape[1])
-    discriminator = build_discriminator(input_dim=real_data.shape[1])
-
-    # Compile the discriminator
-    discriminator.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss='binary_crossentropy',
-        metrics=['accuracy'],
-    )
-
-    # Build and compile the GAN (generator + frozen discriminator)
-    discriminator.trainable = False
-    gan_input = tf.keras.Input(shape=(latent_dim,))
-    generated_data = generator(gan_input)
-    gan_output = discriminator(generated_data)
-    gan = tf.keras.Model(gan_input, gan_output)
-    gan.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        loss='binary_crossentropy',
-    )
-
-    logger.info("Starting GAN training for %d epochs", epochs)
-
-    real_labels = np.ones((batch_size, 1))
-    fake_labels = np.zeros((batch_size, 1))
-
-    for epoch in range(epochs):
-        # Train discriminator with real data
-        idx = np.random.randint(0, real_data.shape[0], batch_size)
-        real_samples = real_data[idx]
-        d_loss_real = discriminator.train_on_batch(real_samples, real_labels)
-
-        # Train discriminator with generated data
-        noise = np.random.normal(0, 1, (batch_size, latent_dim))
-        fake_samples = generator(noise, training=False).numpy()
-        d_loss_fake = discriminator.train_on_batch(fake_samples, fake_labels)
-
-        # Train generator via GAN
-        noise = np.random.normal(0, 1, (batch_size, latent_dim))
-        g_loss = gan.train_on_batch(noise, real_labels)
-
-        if epoch % log_interval == 0:
-            d_loss = 0.5 * (d_loss_real[0] + d_loss_fake[0])
-            logger.info("Epoch %d/%d | D loss: %.4f | G loss: %.4f",
-                        epoch, epochs, d_loss, g_loss)
-
-    # Save trained models
-    os.makedirs(output_dir, exist_ok=True)
-    gen_path = os.path.join(output_dir, "generator.h5")
-    disc_path = os.path.join(output_dir, "discriminator.h5")
-    generator.save(gen_path)
-    discriminator.save(disc_path)
-    logger.info("Models saved to %s", output_dir)
-
-    return generator, discriminator
+def _device() -> torch.device:
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-if __name__ == "__main__":
-    import argparse
+def train_adversarial_gan(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    modifiable_mask: np.ndarray,
+    artifacts_dir: str | Path = "artifacts",
+    latent_dim: int = 32,
+    eps: float = 0.15,
+    epochs: int = 40,
+    batch_size: int = 256,
+    lr: float = 1e-4,
+    lambda_ids: float = 2.0,
+    lambda_pert: float = 0.5,
+    log_interval: int = 5,
+) -> dict:
+    device = _device()
+    artifacts = Path(artifacts_dir)
+    ids = load_ids(artifacts, device=device)
+    for p in ids.parameters():
+        p.requires_grad_(False)
+    ids.eval()
 
-    logging.basicConfig(level=logging.INFO)
+    feature_dim = X_train.shape[1]
+    G = build_generator(feature_dim, latent_dim=latent_dim, eps=eps).to(device)
+    D = build_discriminator(feature_dim).to(device)
+    mask = torch.from_numpy(modifiable_mask.astype(np.float32)).to(device)
 
-    parser = argparse.ArgumentParser(description="Train GAN for adversarial traffic generation")
-    parser.add_argument("--data", required=True, help="Path to real traffic CSV")
-    parser.add_argument("--latent-dim", type=int, default=100)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=10000)
-    parser.add_argument("--lr", type=float, default=0.0002)
-    parser.add_argument("--log-interval", type=int, default=1000)
-    parser.add_argument("--output-dir", default="models")
-    args = parser.parse_args()
+    benign = torch.from_numpy(X_train[y_train == 0]).float()
+    attack = torch.from_numpy(X_train[y_train == 1]).float()
+    if len(benign) == 0 or len(attack) == 0:
+        raise ValueError("Need both benign and attack rows to train the adversarial GAN.")
 
-    train_gan(
-        args.data,
-        latent_dim=args.latent_dim,
-        batch_size=args.batch_size,
-        epochs=args.epochs,
-        learning_rate=args.lr,
-        log_interval=args.log_interval,
-        output_dir=args.output_dir,
-    )
+    attack_loader = DataLoader(TensorDataset(attack), batch_size=min(batch_size, len(attack)), shuffle=True, drop_last=False)
+    bce = nn.BCEWithLogitsLoss()
+    opt_g = torch.optim.Adam(G.parameters(), lr=lr, betas=(0.5, 0.999))
+    opt_d = torch.optim.Adam(D.parameters(), lr=lr, betas=(0.5, 0.999))
+    history = {"d_loss": [], "g_loss": [], "ids_score": []}
+
+    for epoch in range(1, epochs + 1):
+        d_run = g_run = ids_run = 0.0
+        n_batches = 0
+        for (xb,) in attack_loader:
+            xb = xb.to(device)
+            bs = xb.size(0)
+            z = torch.randn(bs, latent_dim, device=device)
+            idx = torch.randint(0, len(benign), (bs,))
+            real_benign = benign[idx].to(device)
+            with torch.no_grad():
+                fake = apply_perturbation(xb, G(xb, z), mask)
+            opt_d.zero_grad()
+            d_real = D(real_benign)
+            d_fake = D(fake.detach())
+            d_loss = bce(d_real, torch.ones_like(d_real)) + bce(d_fake, torch.zeros_like(d_fake))
+            d_loss.backward()
+            opt_d.step()
+            z = torch.randn(bs, latent_dim, device=device)
+            opt_g.zero_grad()
+            delta = G(xb, z)
+            fake = apply_perturbation(xb, delta, mask)
+            g_adv = bce(D(fake), torch.ones_like(d_real))
+            ids_logits = ids(fake)
+            ids_loss = torch.sigmoid(ids_logits).mean()
+            pert_loss = (delta * mask).pow(2).mean()
+            g_loss = g_adv + lambda_ids * ids_loss + lambda_pert * pert_loss
+            g_loss.backward()
+            opt_g.step()
+            d_run += d_loss.item()
+            g_run += g_loss.item()
+            ids_run += ids_loss.item()
+            n_batches += 1
+        history["d_loss"].append(d_run / max(n_batches, 1))
+        history["g_loss"].append(g_run / max(n_batches, 1))
+        history["ids_score"].append(ids_run / max(n_batches, 1))
+        if epoch % log_interval == 0 or epoch == 1 or epoch == epochs:
+            logger.info("GAN epoch %d/%d  D=%.4f  G=%.4f  IDS_P(attack)=%.4f", epoch, epochs, history["d_loss"][-1], history["g_loss"][-1], history["ids_score"][-1])
+
+    ckpt = artifacts / "gan.pt"
+    torch.save({"generator": G.state_dict(), "discriminator": D.state_dict(), "feature_dim": feature_dim, "latent_dim": latent_dim, "eps": eps}, ckpt)
+    with open(artifacts / "gan_train_metrics.json", "w", encoding="utf-8") as fh:
+        json.dump({"final_d_loss": history["d_loss"][-1], "final_g_loss": history["g_loss"][-1], "final_ids_p_attack": history["ids_score"][-1], "epochs": epochs, "eps": eps, "lambda_ids": lambda_ids}, fh, indent=2)
+    logger.info("Saved GAN to %s", ckpt)
+    return {"generator": G, "discriminator": D, "history": history, "checkpoint": str(ckpt)}
+
+
+def load_generator(artifacts_dir: str | Path = "artifacts", device: torch.device | None = None):
+    device = device or _device()
+    payload = torch.load(Path(artifacts_dir) / "gan.pt", map_location=device, weights_only=True)
+    G = build_generator(payload["feature_dim"], latent_dim=payload["latent_dim"], eps=payload["eps"]).to(device)
+    G.load_state_dict(payload["generator"])
+    G.eval()
+    return G, payload
