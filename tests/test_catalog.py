@@ -70,10 +70,11 @@ def test_prepare_without_files_exits_2(capsys):
 
 
 def test_check_data_without_files_exits_2(capsys):
-    code = run_main(["check-data", "--dataset-name", "unsw_nb15"])
+    # CIC day files are never auto-fetched, so this stays missing in CI / this VM.
+    code = run_main(["check-data", "--dataset-name", "cicids2018"])
     assert code == 2
     err = capsys.readouterr().err
-    assert "unsw-nb15" in err
+    assert "cse-cic-ids2018" in err
 
 
 def test_medium_config_has_multi_seed_matched_eps():

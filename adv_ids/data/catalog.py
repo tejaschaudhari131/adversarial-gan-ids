@@ -75,18 +75,23 @@ CATALOG: dict[str, DatasetCatalogEntry] = {
             "Prefer the official ML export: UNSW_NB15_training-set.csv (175,341 rows) "
             "and UNSW_NB15_testing-set.csv (82,332 rows) from the UNSW project page. "
             "`python run.py setup-data --dataset-name unsw_nb15 --fetch` tries a short "
-            "list of public mirrors; if they fail, download manually."
+            "list of public mirrors of that export; if they fail, download manually. "
+            "One working mirror (ushukkla/nospammers) served a file *named* "
+            "UNSW_NB15_training-set.csv whose row count matched the published "
+            "testing set (82,332). Always check the row count after fetch."
         ),
         checksum_notes=(
             "No single vendor SHA-256 is guaranteed across mirrors. After a fetch, "
             "this repo writes data/raw/unsw-nb15/SHA256SUMS for the files it saved. "
-            "Record that digest in docs/DATA_CARD.md."
+            "Observed digest for the ushukkla/nospammers copy (82,332 rows): "
+            "7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c. "
+            "Record whatever digest you actually downloaded in docs/DATA_CARD.md."
         ),
-        size_note="The official training CSV is tens of MB (not multi-GB). Still gitignored.",
+        size_note="The official ML-export CSVs are tens of MB (not multi-GB). Still gitignored.",
         fetch_urls=(
-            # Official-ish public copies of the *training-set* ML export (not the 2M-row dump).
-            "https://raw.githubusercontent.com/Nir-Az/UNSW-NB15-Dataset/main/UNSW_NB15_training-set.csv",
+            # Public copies of the official ML export (not the 2M-row packet dump).
             "https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv",
+            "https://raw.githubusercontent.com/Nir-Az/UNSW-NB15-Dataset/main/UNSW_NB15_training-set.csv",
         ),
         max_fetch_bytes=60_000_000,
     ),

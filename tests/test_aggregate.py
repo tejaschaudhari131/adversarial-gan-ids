@@ -58,6 +58,7 @@ def test_matched_eps_rows_side_by_side():
     assert len(matched) == 1
     rec = matched[0]
     assert rec["eps"] == 0.15
+    assert rec["n_seeds"] == 1
     assert rec["fgsm_evasion"] == 0.70
     assert rec["pgd_l2"] == 1.1
     assert rec["gan_acc_drop"] == 0.1

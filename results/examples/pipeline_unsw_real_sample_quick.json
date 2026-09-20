@@ -1,0 +1,18 @@
+{
+  "clean_accuracy": 0.8673913043478261,
+  "clean_f1": 0.8063492063492064,
+  "clean_roc_auc": 0.9369375000000001,
+  "evasion_rate": 0.07874015748031496,
+  "adversarial_accuracy": 0.8456521739130435,
+  "accuracy_drop": 0.021739130434782594,
+  "mean_abs_perturbation": 0.029339907690882683,
+  "mean_l2_perturbation": 0.3339764177799225,
+  "attack_detected_before": 127,
+  "attack_detected_after": 117,
+  "n_attack_test": 160,
+  "mean_p_attack_after": 0.6643143892288208,
+  "dataset": "unsw_nb15",
+  "model": "mlp",
+  "attack": "gan",
+  "synthetic": false
+}

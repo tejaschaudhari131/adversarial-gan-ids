@@ -1,0 +1,89 @@
+{
+  "name": "medium_synthetic",
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "synthetic": true,
+  "n_benign": 2000,
+  "n_attack": 1000,
+  "test_size": 0.2,
+  "val_size": 0.1,
+  "label_mode": "binary",
+  "results_dir": "results",
+  "artifacts_dir": "artifacts",
+  "export_tables": true,
+  "tables_dir": "results/tables",
+  "tables_prefix": "medium_synthetic",
+  "datasets": [
+    {
+      "name": "cicids2017",
+      "synthetic": true
+    },
+    {
+      "name": "unsw_nb15",
+      "synthetic": true
+    }
+  ],
+  "models": [
+    "mlp",
+    "random_forest"
+  ],
+  "ids": {
+    "epochs": 8,
+    "batch_size": 128,
+    "lr": 0.001
+  },
+  "attacks": [
+    {
+      "name": "fgsm",
+      "eps": 0.15
+    },
+    {
+      "name": "fgsm",
+      "eps": 0.25
+    },
+    {
+      "name": "pgd",
+      "eps": 0.15,
+      "steps": 10,
+      "step_size": 0.03
+    },
+    {
+      "name": "pgd",
+      "eps": 0.25,
+      "steps": 10,
+      "step_size": 0.04
+    },
+    {
+      "name": "gan",
+      "eps": 0.15,
+      "epochs": 16,
+      "batch_size": 128,
+      "lambda_ids": 4.0
+    },
+    {
+      "name": "gan",
+      "eps": 0.25,
+      "epochs": 16,
+      "batch_size": 128,
+      "lambda_ids": 4.0
+    }
+  ],
+  "defense": {
+    "name": "adv_train",
+    "eps": 0.15,
+    "steps": 5,
+    "epochs": 6
+  },
+  "transfer": {
+    "surrogate": "mlp",
+    "targets": [
+      "random_forest"
+    ],
+    "attack": "pgd",
+    "eps": 0.15,
+    "steps": 10
+  }
+}

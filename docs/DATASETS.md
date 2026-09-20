@@ -94,8 +94,14 @@ the Engelen et al. regeneration.
   columns and factorizes `proto` / `service` / `state`.
 - **CLI:** `python run.py pipeline --dataset-name unsw_nb15 --dataset data/raw/unsw-nb15`
 - **Optional fetch:** `python run.py setup-data --dataset-name unsw_nb15 --fetch`
-  tries public copies of `UNSW_NB15_training-set.csv` (tens of MB, gitignored).
+  tries public copies of the official ML export (tens of MB, gitignored).
   CIC day files are **not** auto-downloaded.
+- **Working mirror (verified in this environment):**
+  `https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv`
+  — official 45-column schema; **82,332 rows** (published testing-set size)
+  despite the `training-set` filename.
+  `sha256=7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c`.
+  The Nir-Az raw GitHub URL returned 404 here. Always check row count after fetch.
 - **Fixture:** `tests/fixtures/unsw_nb15_official_sample.csv` matches the
   official column order (`id` … `attack_cat`,`label`).
 

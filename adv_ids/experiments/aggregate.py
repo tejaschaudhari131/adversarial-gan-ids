@@ -50,11 +50,16 @@ def aggregate_rows(
 
 
 def matched_eps_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """One row per (dataset, model, defense, eps) with per-attack evasion and L2."""
+    """One row per (dataset, model, defense, eps) with per-attack evasion and L2.
+
+    Per-seed rows are aggregated first so a multi-seed suite does not silently
+    keep only the last seed.
+    """
+    usable = [r for r in rows if not str(r.get("model", "")).startswith("transfer:")]
+    if usable and "evasion_rate" in usable[0] and "evasion_rate_mean" not in usable[0]:
+        usable = aggregate_rows(usable)
     grouped: dict[tuple, dict[str, dict[str, Any]]] = defaultdict(dict)
-    for row in rows:
-        if row.get("model", "").startswith("transfer:"):
-            continue
+    for row in usable:
         key = (row.get("dataset"), row.get("model"), row.get("defense"), row.get("eps"))
         grouped[key][str(row.get("attack"))] = row
     out = []
@@ -64,12 +69,13 @@ def matched_eps_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "model": key[1],
             "defense": key[2],
             "eps": key[3],
+            "n_seeds": next(iter(attacks.values())).get("n_seeds", 1),
             "attacks": ",".join(sorted(attacks)),
         }
         for name, row in sorted(attacks.items()):
-            rec[f"{name}_evasion"] = row.get("evasion_rate")
-            rec[f"{name}_l2"] = row.get("mean_l2_perturbation")
-            rec[f"{name}_acc_drop"] = row.get("accuracy_drop")
+            rec[f"{name}_evasion"] = row.get("evasion_rate_mean", row.get("evasion_rate"))
+            rec[f"{name}_l2"] = row.get("mean_l2_perturbation_mean", row.get("mean_l2_perturbation"))
+            rec[f"{name}_acc_drop"] = row.get("accuracy_drop_mean", row.get("accuracy_drop"))
         out.append(rec)
     return out
 
