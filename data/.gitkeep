@@ -1,0 +1,2 @@
+# Real CIC-IDS2017 CSVs belong here. They are gitignored.
+# Generate a stand-in with: python run.py prepare --synthetic
