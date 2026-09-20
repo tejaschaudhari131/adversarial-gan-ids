@@ -1,74 +1,98 @@
-import numpy as np
-import os
+"""Train the deep learning IDS on benign vs attack flows."""
+
+from __future__ import annotations
+
+import json
 import logging
-from tensorflow.keras.utils import to_categorical
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
+
 from models.ids_model import build_ids_model
 
 logger = logging.getLogger(__name__)
 
 
-def train_basic_ids(train_path, test_path, output_path="models/ids_model.h5",
-                    epochs=10, batch_size=32):
-    """
-    Train the basic IDS classifier.
+def _device() -> torch.device:
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    Args:
-        train_path: Path to training data CSV (features + label in last column).
-        test_path: Path to test data CSV.
-        output_path: Where to save the trained model.
-        epochs: Number of training epochs.
-        batch_size: Training batch size.
 
-    Returns:
-        Training history object.
-    """
-    for path in (train_path, test_path):
-        if not os.path.isfile(path):
-            raise FileNotFoundError(f"Data file not found: {path}")
+def train_ids_model(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_val: np.ndarray | None = None,
+    y_val: np.ndarray | None = None,
+    epochs: int = 12,
+    batch_size: int = 256,
+    lr: float = 1e-3,
+    artifacts_dir: str | Path = "artifacts",
+) -> dict:
+    device = _device()
+    model = build_ids_model(input_dim=X_train.shape[1]).to(device)
 
-    logger.info("Loading training data from %s", train_path)
-    train_data = np.loadtxt(train_path, delimiter=',')
-    test_data = np.loadtxt(test_path, delimiter=',')
+    n_pos = max(int((y_train == 1).sum()), 1)
+    n_neg = max(int((y_train == 0).sum()), 1)
+    pos_weight = torch.tensor([n_neg / n_pos], dtype=torch.float32, device=device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
 
-    # Extract features and labels
-    X_train = train_data[:, :-1]
-    y_train = to_categorical(train_data[:, -1])
-
-    X_test = test_data[:, :-1]
-    y_test = to_categorical(test_data[:, -1])
-
-    # Build and compile the IDS model
-    ids_model = build_ids_model(input_dim=X_train.shape[1], num_classes=y_train.shape[1])
-    ids_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-    logger.info("Training basic IDS model (%d samples, %d features)",
-                X_train.shape[0], X_train.shape[1])
-
-    history = ids_model.fit(
-        X_train, y_train,
-        epochs=epochs,
-        batch_size=batch_size,
-        validation_data=(X_test, y_test),
+    train_ds = TensorDataset(
+        torch.from_numpy(X_train).float(),
+        torch.from_numpy(y_train).float(),
     )
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=False)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    ids_model.save(output_path)
-    logger.info("Model saved to %s", output_path)
+    history = {"train_loss": [], "val_acc": []}
+    best_val = -1.0
+    artifacts = Path(artifacts_dir)
+    artifacts.mkdir(parents=True, exist_ok=True)
+    ckpt = artifacts / "ids_model.pt"
 
-    return history
+    for epoch in range(1, epochs + 1):
+        model.train()
+        running = 0.0
+        for xb, yb in train_loader:
+            xb, yb = xb.to(device), yb.to(device)
+            opt.zero_grad()
+            logits = model(xb)
+            loss = criterion(logits, yb)
+            loss.backward()
+            opt.step()
+            running += loss.item() * len(xb)
+        train_loss = running / len(train_ds)
+        history["train_loss"].append(train_loss)
+
+        val_acc = None
+        if X_val is not None and y_val is not None:
+            model.eval()
+            with torch.no_grad():
+                logits = model(torch.from_numpy(X_val).float().to(device))
+                preds = (torch.sigmoid(logits) >= 0.5).cpu().numpy().astype(int)
+            val_acc = float((preds == y_val).mean())
+            history["val_acc"].append(val_acc)
+            if val_acc >= best_val:
+                best_val = val_acc
+                torch.save({"model_state": model.state_dict(), "input_dim": X_train.shape[1]}, ckpt)
+        logger.info("IDS epoch %d/%d loss=%.4f val_acc=%s", epoch, epochs, train_loss, val_acc)
+
+    if best_val < 0:
+        torch.save({"model_state": model.state_dict(), "input_dim": X_train.shape[1]}, ckpt)
+
+    payload = torch.load(ckpt, map_location=device, weights_only=True)
+    model.load_state_dict(payload["model_state"])
+    metrics = {"best_val_acc": best_val if best_val >= 0 else None, "history": history, "checkpoint": str(ckpt)}
+    with open(artifacts / "ids_train_metrics.json", "w", encoding="utf-8") as fh:
+        json.dump({k: v for k, v in metrics.items() if k != "history"} | {"final_train_loss": history["train_loss"][-1]}, fh, indent=2)
+    return {"model": model, **metrics}
 
 
-if __name__ == "__main__":
-    import argparse
-
-    logging.basicConfig(level=logging.INFO)
-
-    parser = argparse.ArgumentParser(description="Train basic IDS model")
-    parser.add_argument("--train-data", required=True, help="Path to training CSV")
-    parser.add_argument("--test-data", required=True, help="Path to test CSV")
-    parser.add_argument("--output", default="models/ids_model.h5", help="Model output path")
-    parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch-size", type=int, default=32)
-    args = parser.parse_args()
-
-    train_basic_ids(args.train_data, args.test_data, args.output, args.epochs, args.batch_size)
+def load_ids(artifacts_dir: str | Path = "artifacts", device: torch.device | None = None) -> torch.nn.Module:
+    device = device or _device()
+    payload = torch.load(Path(artifacts_dir) / "ids_model.pt", map_location=device, weights_only=True)
+    model = build_ids_model(input_dim=payload["input_dim"]).to(device)
+    model.load_state_dict(payload["model_state"])
+    model.eval()
+    return model
