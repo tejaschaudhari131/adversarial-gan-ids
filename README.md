@@ -112,6 +112,18 @@ FGSM / PGD / GAN with L2 reported). Completes on CPU; writes real tables:
 python run.py experiment-suite --config configs/medium.yaml
 ```
 
+Real dumps (gitignored) after a successful fetch:
+
+```bash
+python scripts/download_datasets.py                 # UNSW official pair + Engelen CIC zip
+python run.py experiment-suite --config configs/unsw_real.yaml
+python run.py experiment-suite --config configs/cicids_engelen_friday.yaml
+```
+
+Official CIC `MachineLearningCSV.zip` hosts currently return an HTML portal;
+the Engelen-corrected zip does not. Hashes and probe notes:
+[docs/DATA_CARD.md](docs/DATA_CARD.md).
+
 Aggregated CSV/Markdown from that run: [`results/tables/medium_synthetic_*.md`](results/tables/).
 Do not treat those cells as CIC/UNSW paper results.
 
@@ -188,6 +200,7 @@ GitHub Actions runs the same three steps on every push/PR.
 | [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) | White-box / grey-box / transfer, mask, non-claims |
 | [docs/METRICS.md](docs/METRICS.md) | Evasion rate vs. ASR, L2, protocol |
 | [docs/DATASETS.md](docs/DATASETS.md) | Download sources, folder layout, Engelen issues |
+| [docs/DATA_CARD.md](docs/DATA_CARD.md) | Observed URLs, row counts, sha256 of files actually fetched |
 
 ## Resume-style summary
 

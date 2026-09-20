@@ -20,7 +20,11 @@ python run.py setup-data --dataset-name unsw_nb15 --fetch
 | `medium_evasion_vs_l2.png` | matched-eps L2 vs evasion (synthetic) |
 | `medium_aggregate_evasion.png` | mean ± std evasion bars (synthetic) |
 | `medium_transfer_heatmap.png` | MLP→RF transfer (synthetic) |
-| `pipeline_unsw_real_sample_quick.json` | GAN-vs-MLP on a 2,300-row sample of the fetched official UNSW export |
+| `pipeline_unsw_real_sample_quick.json` | earlier 2,300-row UNSW sample |
+| `suite_unsw_real.md` | official 175,341 / 82,332 split, MLP, seed 42 |
+| `unsw_real_attack_comparison.png` | FGSM / PGD / GAN on that official test set |
+| `suite_cicids_engelen_friday.md` | Engelen Friday, 20k-row sample, MLP |
+| `cicids_engelen_friday_attack_comparison.png` | FGSM / PGD / GAN on that sample |
 
 Aggregated CSV/Markdown for the medium suite (committed, executed numbers only):
 [`results/tables/medium_synthetic_*.md`](../tables/).
@@ -45,7 +49,43 @@ Adversarial training cut CIC stand-in PGD evasion at `eps=0.15` from 0.99 to
 0.29 (clean acc 0.97). Transfer MLP→RF stayed weak on the CIC stand-in
 (0.057 ± 0.023) and strong on the UNSW stand-in (0.715 ± 0.017).
 
-## Real UNSW official-export sample (not the full dump)
+## Official UNSW-NB15 train/test (full dumps, not committed)
+
+`python run.py experiment-suite --config configs/unsw_real.yaml` after fetching
+both official CSVs (see `docs/DATA_CARD.md`). Official split: train 157,806 +
+val 17,535 from the 175,341-row training file; test = all 82,332 test rows;
+42 features; scaler fit on train only. Seed 42, MLP 8 epochs, `eps=0.15`.
+
+Source: `results/tables/unsw_real_per_seed.md`.
+
+| attack | clean acc | clean F1* | evasion | drop | mean L2 |
+| --- | --- | --- | --- | --- | --- |
+| fgsm | 0.8437 | 0.8681 | 0.9851 | 0.5067 | 0.6285 |
+| pgd | 0.8437 | 0.8681 | 0.9920 | 0.5103 | 0.5781 |
+| gan (8 ep) | 0.8437 | 0.8681 | 0.1675 | 0.0725 | 0.4148 |
+
+\*F1 from the suite log (`auc=0.9514`). One seed — not a multi-seed paper table.
+
+## Engelen-corrected CIC-IDS2017 Friday (20k-row sample)
+
+Full Friday file is 547,915 flows (gitignored). The suite used
+`max_samples=20000` → train 14,000 / val 2,000 / test 4,000, 78 features after
+aliasing Engelen names onto the CIC-IDS2017 list. Seed 42, MLP 6 epochs, `eps=0.15`.
+
+Source: `results/tables/cicids_engelen_friday_per_seed.md`.
+
+| attack | clean acc | evasion | drop | mean L2 |
+| --- | --- | --- | --- | --- |
+| fgsm | 0.9920 | 1.0000 | 0.4695 | 0.9605 |
+| pgd | 0.9920 | 1.0000 | 0.4695 | 0.9019 |
+| gan (6 ep) | 0.9920 | 1.0000 | 0.4695 | 0.4170 |
+
+Friday-only + 20k cap. Do not cite as a full-week CIC-IDS2017 result.
+
+Official `MachineLearningCSV.zip` URLs returned HTML portals in this VM
+(`scripts/download_datasets.py --probe-cic-portal`).
+
+## Earlier 2.3k UNSW sample (superseded by the official split above)
 
 Fetched `UNSW_NB15_training-set.csv` from
 `https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv`

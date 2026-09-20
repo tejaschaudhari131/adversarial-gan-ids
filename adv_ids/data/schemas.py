@@ -101,6 +101,30 @@ CICIOT_FROZEN = {
     "DHCP", "ARP", "ICMP", "IPv", "LLC",
 }
 
+# Engelen / fixed-CICFlowMeter Friday-WorkingHours.csv → MachineLearningCSV names.
+ENGELEN_TO_CIC2017 = {
+    "Dst Port": "Destination Port",
+    "Total Fwd Packet": "Total Fwd Packets",
+    "Total Bwd packets": "Total Backward Packets",
+    "Total Length of Fwd Packet": "Total Length of Fwd Packets",
+    "Total Length of Bwd Packet": "Total Length of Bwd Packets",
+    "Packet Length Min": "Min Packet Length",
+    "Packet Length Max": "Max Packet Length",
+    "CWR Flag Count": "CWE Flag Count",
+    "Fwd Segment Size Avg": "Avg Fwd Segment Size",
+    "Bwd Segment Size Avg": "Avg Bwd Segment Size",
+    "Fwd Bytes/Bulk Avg": "Fwd Avg Bytes/Bulk",
+    "Fwd Packet/Bulk Avg": "Fwd Avg Packets/Bulk",
+    "Fwd Bulk Rate Avg": "Fwd Avg Bulk Rate",
+    "Bwd Bytes/Bulk Avg": "Bwd Avg Bytes/Bulk",
+    "Bwd Packet/Bulk Avg": "Bwd Avg Packets/Bulk",
+    "Bwd Bulk Rate Avg": "Bwd Avg Bulk Rate",
+    "FWD Init Win Bytes": "Init_Win_bytes_forward",
+    "Bwd Init Win Bytes": "Init_Win_bytes_backward",
+    "Fwd Act Data Pkts": "act_data_pkt_fwd",
+    "Fwd Seg Size Min": "min_seg_size_forward",
+}
+
 # Map abbreviated CIC-IDS2018 names onto the CIC-IDS2017 MachineLearningCSV names
 # so the two CICFlowMeter families can share a feature space after alignment.
 CIC2018_TO_CIC2017 = {
@@ -199,7 +223,8 @@ DATASET_SPECS: dict[str, DatasetSpec] = {
         features=list(CICIDS2017_FEATURES),
         frozen=set(CIC_FROZEN),
         label_column="Label",
-        notes="CIC-IDS2017 MachineLearningCSV / CICFlowMeter features.",
+        notes="CIC-IDS2017 MachineLearningCSV / Engelen-corrected CICFlowMeter features.",
+        aliases=dict(ENGELEN_TO_CIC2017),
     ),
     "cicids2018": DatasetSpec(
         name="cicids2018",

@@ -56,6 +56,15 @@ python run.py prepare --dataset-name unsw_nb15 \
 - **Paper:** Sharafaldin, Lashkari, and Ghorbani, “Toward Generating a New Intrusion Detection Dataset and Intrusion Traffic Characterization,” ICISSP 2018. [DOI 10.5220/0006639801080116](https://doi.org/10.5220/0006639801080116)
 - **Schema:** 78 numeric flow features + `Label` (`BENIGN` vs. attack family)
 - **CLI:** `python run.py pipeline --dataset-name cicids2017 --dataset data/raw/cicids2017`
+- **Official zip in this VM:** `MachineLearningCSV.zip` URLs returned HTML
+  portals (~109 KB, `text/html`), not the archive. See [DATA_CARD.md](DATA_CARD.md).
+- **Engelen-corrected zip (no login, verified):**
+  `https://intrusion-detection.distrinet-research.be/WTMC2021/Dataset/dataset.zip`
+  `sha256=4d535da19795d85376ae1397d161329e3b06fc47d9a5a68cd9be2cd7ecee0f2a`
+  (333,841,436 bytes).  
+  `python run.py setup-data --dataset-name cicids2017 --fetch` downloads it and
+  extracts day CSVs. Do not commit the zip or the CSVs.
+  Small real eval: `python run.py experiment-suite --config configs/cicids_engelen_friday.yaml`
 
 ### Known issues (do not ignore these in a paper)
 
@@ -94,14 +103,18 @@ the Engelen et al. regeneration.
   columns and factorizes `proto` / `service` / `state`.
 - **CLI:** `python run.py pipeline --dataset-name unsw_nb15 --dataset data/raw/unsw-nb15`
 - **Optional fetch:** `python run.py setup-data --dataset-name unsw_nb15 --fetch`
-  tries public copies of the official ML export (tens of MB, gitignored).
-  CIC day files are **not** auto-downloaded.
-- **Working mirror (verified in this environment):**
-  `https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv`
-  — official 45-column schema; **82,332 rows** (published testing-set size)
-  despite the `training-set` filename.
-  `sha256=7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c`.
-  The Nir-Az raw GitHub URL returned 404 here. Always check row count after fetch.
+  or `python scripts/download_datasets.py`. Observed hashes live in
+  [DATA_CARD.md](DATA_CARD.md).
+- **Working mirrors (verified 2026-09-20):**
+  - Training (175,341 rows, 32.3 MB):
+    `https://huggingface.co/datasets/Mouwiya/UNSW-NB15/resolve/main/UNSW_NB15_training-set.csv`
+    `sha256=bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa`
+  - Testing (82,332 rows, 15.3 MB; file may be *named* training-set):
+    `https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv`
+    `sha256=7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c`
+  - Nir-Az raw GitHub URL: HTTP 404 here.
+- When both official files sit in `data/raw/unsw-nb15/`, `prepare` uses that
+  **official split** (scaler + categorical codes fit on train only).
 - **Fixture:** `tests/fixtures/unsw_nb15_official_sample.csv` matches the
   official column order (`id` … `attack_cat`,`label`).
 

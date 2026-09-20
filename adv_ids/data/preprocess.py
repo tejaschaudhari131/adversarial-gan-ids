@@ -97,7 +97,13 @@ def encode_multiclass(labels: pd.Series) -> tuple[np.ndarray, list[str]]:
 def _drop_duplicate_and_leakage_columns(df: pd.DataFrame) -> pd.DataFrame:
     """CIC-IDS2017 MachineLearningCSV duplicates Fwd Header Length as Fwd Header Length.1."""
     drop = [c for c in df.columns if c.endswith(".1") and c[: -2] in set(df.columns)]
-    leakage = [c for c in df.columns if c.lower() in {"timestamp", "flow id", "src ip", "dst ip", "source ip", "destination ip"}]
+    leakage = [
+        c for c in df.columns
+        if c.lower() in {
+            "timestamp", "flow id", "src ip", "dst ip", "source ip", "destination ip",
+            "src port", "source port",
+        }
+    ]
     to_drop = [c for c in drop + leakage if c in df.columns]
     if to_drop:
         logger.info("Dropping duplicate/leakage columns: %s", to_drop)
@@ -115,8 +121,50 @@ def _encode_categoricals(df: pd.DataFrame, spec: DatasetSpec) -> pd.DataFrame:
     return df
 
 
-def _select_feature_frame(df: pd.DataFrame, spec: DatasetSpec) -> tuple[pd.DataFrame, pd.Series, pd.Series | None]:
+def _encode_categoricals_pair(
+    train: pd.DataFrame, test: pd.DataFrame, spec: DatasetSpec
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Factorize categoricals on train; map unseen test values to -1."""
+    train, test = train.copy(), test.copy()
+    for col in spec.categorical:
+        if col not in train.columns:
+            continue
+        codes, uniques = pd.factorize(train[col].astype(str), sort=True)
+        train[col] = codes.astype(np.float32)
+        mapping = {u: i for i, u in enumerate(uniques)}
+        if col in test.columns:
+            test[col] = test[col].astype(str).map(mapping).fillna(-1).to_numpy(dtype=np.float32)
+    return train, test
+
+
+def _apply_aliases(df: pd.DataFrame, spec: DatasetSpec) -> pd.DataFrame:
+    rename = {
+        src: dst
+        for src, dst in spec.aliases.items()
+        if src in df.columns and dst not in df.columns and dst in spec.features
+    }
+    return df.rename(columns=rename) if rename else df
+
+
+def official_unsw_split_paths(path: str | Path) -> tuple[Path, Path] | None:
+    folder = Path(path)
+    if not folder.is_dir():
+        return None
+    train = folder / "UNSW_NB15_training-set.csv"
+    test = folder / "UNSW_NB15_testing-set.csv"
+    if train.is_file() and test.is_file():
+        return train, test
+    return None
+
+
+def _select_feature_frame(
+    df: pd.DataFrame,
+    spec: DatasetSpec,
+    *,
+    encode_categoricals: bool = True,
+) -> tuple[pd.DataFrame, pd.Series, pd.Series | None]:
     df = normalize_label_column(df)
+    df = _apply_aliases(df, spec)
     df = _drop_duplicate_and_leakage_columns(df)
     for col in spec.drop_columns:
         if col in df.columns:
@@ -139,22 +187,32 @@ def _select_feature_frame(df: pd.DataFrame, spec: DatasetSpec) -> tuple[pd.DataF
     if spec.multiclass_column and spec.multiclass_column in df.columns:
         drop_y.add(spec.multiclass_column)
     X_df = df.drop(columns=[c for c in drop_y if c in df.columns])
-    X_df = _encode_categoricals(X_df, spec)
+    if encode_categoricals:
+        X_df = _encode_categoricals(X_df, spec)
 
     # Prefer the documented feature order when columns exist; otherwise keep numeric leftovers.
     available = [c for c in spec.features if c in X_df.columns]
+    pending_cat = [] if encode_categoricals else [c for c in spec.categorical if c in X_df.columns and c not in available]
     extra_numeric = [
         c for c in X_df.columns
-        if c not in available and pd.api.types.is_numeric_dtype(X_df[c])
+        if c not in available and c not in pending_cat and pd.api.types.is_numeric_dtype(X_df[c])
     ]
-    ordered = available + extra_numeric
+    ordered = available + pending_cat + extra_numeric
     if not ordered:
         raise ValueError("No numeric feature columns remain after cleaning.")
     X_df = X_df[ordered]
-    non_numeric = X_df.select_dtypes(exclude=[np.number]).columns.tolist()
-    if non_numeric:
-        logger.info("Dropping leftover non-numeric columns: %s", non_numeric)
-        X_df = X_df.select_dtypes(include=[np.number])
+    if encode_categoricals:
+        non_numeric = X_df.select_dtypes(exclude=[np.number]).columns.tolist()
+        if non_numeric:
+            logger.info("Dropping leftover non-numeric columns: %s", non_numeric)
+            X_df = X_df.select_dtypes(include=[np.number])
+    else:
+        drop_non = [
+            c for c in X_df.columns
+            if c not in spec.categorical and not pd.api.types.is_numeric_dtype(X_df[c])
+        ]
+        if drop_non:
+            X_df = X_df.drop(columns=drop_non)
     return X_df, y_raw, multi
 
 
@@ -277,6 +335,99 @@ def prepare_from_frame(
     )
 
 
+def prepare_from_official_frames(
+    train_df: pd.DataFrame,
+    test_df: pd.DataFrame,
+    *,
+    dataset_name: str = "unsw_nb15",
+    val_size: float = 0.1,
+    random_state: int = 42,
+    label_mode: str = "binary",
+    artifacts_dir: str | Path = "artifacts",
+    max_samples: int | None = None,
+) -> DatasetBundle:
+    """Prepare an official train/test export. Scaler and categorical codes fit on train only."""
+    spec = get_spec(dataset_name)
+    X_tr, y_tr_raw, ym_tr_raw = _select_feature_frame(train_df, spec, encode_categoricals=False)
+    X_te, y_te_raw, ym_te_raw = _select_feature_frame(test_df, spec, encode_categoricals=False)
+    X_tr, X_te = _encode_categoricals_pair(X_tr, X_te, spec)
+    cols = [c for c in X_tr.columns if c in X_te.columns]
+    extra = [c for c in X_te.columns if c not in cols and pd.api.types.is_numeric_dtype(X_te[c])]
+    if extra:
+        logger.info("Dropping test-only numeric columns: %s", extra)
+    X_tr = X_tr[cols]
+    X_te = X_te[cols]
+    y_tr = binarize_labels(y_tr_raw)
+    y_te = binarize_labels(y_te_raw)
+    ym_tr, multi_names = encode_multiclass(ym_tr_raw if ym_tr_raw is not None else y_tr_raw)
+    ym_te, _ = encode_multiclass(ym_te_raw if ym_te_raw is not None else y_te_raw)
+
+    if max_samples is not None:
+        rng = np.random.default_rng(random_state)
+        if len(X_tr) > max_samples:
+            idx = rng.choice(len(X_tr), size=max_samples, replace=False)
+            X_tr, y_tr, ym_tr = X_tr.iloc[idx], y_tr[idx], ym_tr[idx]
+        test_cap = max(int(0.3 * max_samples), 200)
+        if len(X_te) > test_cap:
+            idx = rng.choice(len(X_te), size=test_cap, replace=False)
+            X_te, y_te, ym_te = X_te.iloc[idx], y_te[idx], ym_te[idx]
+
+    scaler = MinMaxScaler(feature_range=(0.0, 1.0))
+    X_train_all = scaler.fit_transform(X_tr.to_numpy(dtype=np.float32)).astype(np.float32)
+    X_test = scaler.transform(X_te.to_numpy(dtype=np.float32)).astype(np.float32)
+    target_tr = y_tr if label_mode == "binary" else ym_tr
+    target_te = y_te if label_mode == "binary" else ym_te
+
+    if val_size and val_size > 0:
+        strat = target_tr if len(np.unique(target_tr)) > 1 else None
+        X_train, X_val, y_train, y_val, ym_train, ym_val = train_test_split(
+            X_train_all, target_tr, ym_tr, test_size=val_size, random_state=random_state, stratify=strat,
+        )
+    else:
+        X_train, y_train, ym_train = X_train_all, target_tr, ym_tr
+        X_val = np.empty((0, X_train_all.shape[1]), dtype=np.float32)
+        y_val = np.empty((0,), dtype=target_tr.dtype)
+        ym_val = np.empty((0,), dtype=ym_tr.dtype)
+
+    feature_names = list(cols)
+    mask = feature_mask(feature_names, spec)
+    artifacts = ensure_dir(artifacts_dir)
+    scaler_path = artifacts / "scaler.joblib"
+    joblib.dump(scaler, scaler_path)
+    meta = {
+        "dataset": spec.name,
+        "family": spec.family,
+        "label_mode": label_mode,
+        "official_split": True,
+        "feature_names": feature_names,
+        "n_features": len(feature_names),
+        "n_train": int(len(X_train)),
+        "n_val": int(len(X_val)),
+        "n_test": int(len(X_test)),
+        "n_benign_train": int((y_train == 0).sum()) if label_mode == "binary" else None,
+        "n_attack_train": int((y_train == 1).sum()) if label_mode == "binary" else None,
+        "modifiable_mask": mask.tolist(),
+        "notes": spec.notes,
+        "seed": int(random_state),
+        "test_size": "official",
+        "val_size": float(val_size),
+    }
+    write_json(artifacts / "dataset_meta.json", meta)
+    logger.info(
+        "Prepared official %s: train=%d val=%d test=%d features=%d",
+        spec.name, len(X_train), len(X_val), len(X_test), X_train.shape[1],
+    )
+    class_names = ["BENIGN", "ATTACK"] if label_mode == "binary" else multi_names
+    return DatasetBundle(
+        X_train=X_train, X_val=X_val, X_test=X_test,
+        y_train=y_train, y_val=y_val, y_test=target_te,
+        feature_names=feature_names, modifiable_mask=mask, scaler=scaler,
+        dataset_name=spec.name, label_mode=label_mode, class_names=class_names,
+        y_multi_train=ym_train, y_multi_val=ym_val, y_multi_test=ym_te,
+        multi_class_names=multi_names, meta=meta, scaler_path=str(scaler_path),
+    )
+
+
 def prepare_dataset(
     file_path,
     test_size: float = 0.2,
@@ -293,7 +444,25 @@ def prepare_dataset(
 
     ``val_size`` defaults to 0 so the original CLI (train + test only) stays
     unchanged. Experiment configs should pass a positive val_size.
+    When ``file_path`` is a directory containing both official UNSW train/test
+    CSVs, those files are used as the split (scaler fit on train only).
     """
+    official = official_unsw_split_paths(file_path)
+    name = normalize_dataset_name(dataset_name) if dataset_name else None
+    if official and (name in {None, "unsw_nb15"}):
+        train_df = load_traffic_table(official[0])
+        test_df = load_traffic_table(official[1])
+        bundle = prepare_from_official_frames(
+            train_df,
+            test_df,
+            dataset_name="unsw_nb15",
+            val_size=val_size,
+            random_state=random_state,
+            label_mode=label_mode,
+            artifacts_dir=artifacts_dir,
+            max_samples=max_samples,
+        )
+        return bundle.as_legacy_dict()
     df = load_traffic_table(file_path, max_files=max_files)
     bundle = prepare_from_frame(
         df,

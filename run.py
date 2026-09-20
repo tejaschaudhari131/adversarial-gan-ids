@@ -71,6 +71,7 @@ def cmd_prepare(args) -> dict:
         dataset_name=args.dataset_name,
         val_size=getattr(args, "val_size", 0.0),
         label_mode=getattr(args, "label_mode", "binary"),
+        max_samples=getattr(args, "max_samples", None),
     )
 
 
@@ -261,6 +262,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--clean-only", action="store_true")
     common.add_argument("--quick", action="store_true", help="Tiny run for smoke tests.")
     common.add_argument("--fetch", action="store_true", help="For setup-data: try public mirrors.")
+    common.add_argument("--max-samples", type=int, default=None, help="Optional row cap after cleaning.")
     common.add_argument("-v", "--verbose", action="store_true")
 
     p = argparse.ArgumentParser(

@@ -62,11 +62,12 @@ def test_check_dataset_reports_not_ready():
 
 
 def test_prepare_without_files_exits_2(capsys):
-    code = run_main(["prepare", "--dataset-name", "cicids2017"])
+    # CIC-IDS2018 day files are never auto-fetched (AWS, multi-GB).
+    code = run_main(["prepare", "--dataset-name", "cicids2018"])
     assert code == 2
     err = capsys.readouterr().err
-    assert "Dataset 'cicids2017' is not on disk" in err
-    assert "data/raw/cicids2017" in err
+    assert "Dataset 'cicids2018' is not on disk" in err
+    assert "cse-cic-ids2018" in err
 
 
 def test_check_data_without_files_exits_2(capsys):

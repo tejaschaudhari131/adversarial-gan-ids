@@ -17,6 +17,8 @@ class DatasetCatalogEntry:
     checksum_notes: str
     size_note: str
     fetch_urls: tuple[str, ...] = ()
+    fetch_files: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    extract_zip: str | None = None
     max_fetch_bytes: int = 80_000_000
 
 
@@ -32,17 +34,30 @@ CATALOG: dict[str, DatasetCatalogEntry] = {
         ),
         homepage="https://www.unb.ca/cic/datasets/ids-2017.html",
         download_notes=(
-            "Download MachineLearningCSV.zip from the CIC IDS 2017 page, unzip, "
-            "and place the day CSVs in data/raw/cicids2017/. Prefer the Engelen "
-            "et al. reconstructed features when writing a paper "
-            "(https://intrusion-detection.distrinet-research.be/WTMC2021/)."
+            "Official MachineLearningCSV.zip URLs (205.174.165.80 / cicresearch.ca) "
+            "return an HTML registration portal (HTTP 200, ~109 KB HTML), not the zip. "
+            "A public no-login alternative is the Engelen-corrected regeneration: "
+            "https://intrusion-detection.distrinet-research.be/WTMC2021/Dataset/dataset.zip "
+            "(~319 MB). `python run.py setup-data --dataset-name cicids2017 --fetch` "
+            "tries that zip and extracts day CSVs into data/raw/cicids2017/."
         ),
         checksum_notes=(
-            "CIC does not publish a stable SHA-256 for MachineLearningCSV.zip. "
-            "After download, record `sha256sum MachineLearningCSV.zip` in "
-            "docs/DATA_CARD.md (you write this file locally; do not commit the zip)."
+            "Observed 2026-09-20 for Engelen dataset.zip: "
+            "sha256=4d535da19795d85376ae1397d161329e3b06fc47d9a5a68cd9be2cd7ecee0f2a "
+            "(333,841,436 bytes). Official CIC does not publish a stable SHA-256."
         ),
-        size_note="MachineLearningCSV.zip is hundreds of MB. Do not commit it.",
+        size_note="Engelen zip is ~319 MB; uncompressed day CSVs are ~1.1 GB. Do not commit them.",
+        fetch_files=(
+            (
+                "engelen_WTMC2021_dataset.zip",
+                (
+                    "https://intrusion-detection.distrinet-research.be/WTMC2021/Dataset/dataset.zip",
+                    "https://downloads.distrinet-research.be/WTMC2021/Dataset/dataset.zip",
+                ),
+            ),
+        ),
+        extract_zip="engelen_WTMC2021_dataset.zip",
+        max_fetch_bytes=400_000_000,
     ),
     "cicids2018": DatasetCatalogEntry(
         name="cicids2018",
@@ -74,26 +89,36 @@ CATALOG: dict[str, DatasetCatalogEntry] = {
         download_notes=(
             "Prefer the official ML export: UNSW_NB15_training-set.csv (175,341 rows) "
             "and UNSW_NB15_testing-set.csv (82,332 rows) from the UNSW project page. "
-            "`python run.py setup-data --dataset-name unsw_nb15 --fetch` tries a short "
-            "list of public mirrors of that export; if they fail, download manually. "
-            "One working mirror (ushukkla/nospammers) served a file *named* "
-            "UNSW_NB15_training-set.csv whose row count matched the published "
-            "testing set (82,332). Always check the row count after fetch."
+            "`python run.py setup-data --dataset-name unsw_nb15 --fetch` pulls the "
+            "Hugging Face copy of the 175k training CSV and a public 82k testing CSV."
         ),
         checksum_notes=(
-            "No single vendor SHA-256 is guaranteed across mirrors. After a fetch, "
-            "this repo writes data/raw/unsw-nb15/SHA256SUMS for the files it saved. "
-            "Observed digest for the ushukkla/nospammers copy (82,332 rows): "
-            "7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c. "
-            "Record whatever digest you actually downloaded in docs/DATA_CARD.md."
+            "Observed 2026-09-20: training "
+            "sha256=bec7dd5ec88dc2a0ccc7a07879d338395ed7421750f675fd0339e07dfe0648fa "
+            "(32,293,018 bytes, 175,341 rows, Hugging Face Mouwiya/UNSW-NB15). "
+            "testing sha256=7ec02e7e44d72bd265716b33fda0c7f2188b658e3a4ae1aa2c4b306134cd818c "
+            "(15,298,467 bytes, 82,332 rows, ushukkla/nospammers; published test size)."
         ),
-        size_note="The official ML-export CSVs are tens of MB (not multi-GB). Still gitignored.",
+        size_note="Official ML-export CSVs are tens of MB (not multi-GB). Still gitignored.",
         fetch_urls=(
-            # Public copies of the official ML export (not the 2M-row packet dump).
+            "https://huggingface.co/datasets/Mouwiya/UNSW-NB15/resolve/main/UNSW_NB15_training-set.csv",
             "https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv",
-            "https://raw.githubusercontent.com/Nir-Az/UNSW-NB15-Dataset/main/UNSW_NB15_training-set.csv",
         ),
-        max_fetch_bytes=60_000_000,
+        fetch_files=(
+            (
+                "UNSW_NB15_training-set.csv",
+                (
+                    "https://huggingface.co/datasets/Mouwiya/UNSW-NB15/resolve/main/UNSW_NB15_training-set.csv",
+                ),
+            ),
+            (
+                "UNSW_NB15_testing-set.csv",
+                (
+                    "https://github.com/ushukkla/nospammers/raw/master/UNSW_NB15_training-set.csv",
+                ),
+            ),
+        ),
+        max_fetch_bytes=80_000_000,
     ),
     "ciciot2023": DatasetCatalogEntry(
         name="ciciot2023",

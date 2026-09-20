@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
+
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from adv_ids.data.loaders import infer_dataset_name, load_csv_table
-from adv_ids.data.preprocess import prepare_dataset, prepare_from_frame
+from adv_ids.data.preprocess import official_unsw_split_paths, prepare_dataset, prepare_from_frame
 from adv_ids.data.schemas import CICIDS2017_FEATURES, CICIDS2018_FEATURES, UNSW_NB15_NUMERIC
 
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -61,3 +64,33 @@ def test_unsw_fixture_official_columns(tmp_path):
         assert col in bundle.feature_names
     assert bundle.y_multi_train is not None
     assert set(bundle.y_train).issubset({0, 1})
+
+
+def test_official_unsw_split_uses_both_files(tmp_path):
+    raw = tmp_path / "unsw-nb15"
+    raw.mkdir()
+    src = FIXTURES / "unsw_nb15_official_sample.csv"
+    shutil.copy(src, raw / "UNSW_NB15_training-set.csv")
+    shutil.copy(src, raw / "UNSW_NB15_testing-set.csv")
+    assert official_unsw_split_paths(raw) is not None
+    data = prepare_dataset(raw, artifacts_dir=tmp_path / "art", dataset_name="unsw_nb15", val_size=0.0)
+    assert data["meta"]["official_split"] is True
+    assert len(data["X_test"]) == 12
+    assert len(data["X_train"]) == 12
+
+
+def test_engelen_headers_infer_cicids2017():
+    df = pd.DataFrame(
+        {
+            "Dst Port": [80, 443, 80, 22, 80, 443],
+            "Total Fwd Packet": [4, 6, 20, 8, 18, 5],
+            "FWD Init Win Bytes": [100, 110, 200, 90, 180, 95],
+            "Flow Duration": [10, 12, 80, 15, 90, 11],
+            "Label": ["BENIGN", "BENIGN", "DDoS", "BENIGN", "DDoS", "BENIGN"],
+        }
+    )
+    assert infer_dataset_name(df) == "cicids2017"
+    bundle = prepare_from_frame(df, dataset_name="cicids2017", val_size=0.0, test_size=0.25)
+    assert "Destination Port" in bundle.feature_names
+    assert "Total Fwd Packets" in bundle.feature_names
+    assert "Init_Win_bytes_forward" in bundle.feature_names

@@ -51,6 +51,9 @@ def infer_dataset_name(df: pd.DataFrame) -> str:
         return "unsw_nb15"
     if "header_length" in lower and "protocol type" in lower:
         return "ciciot2023"
+    # Engelen / fixed CICFlowMeter uses Dst Port plus singular "Total Fwd Packet".
+    if "total fwd packet" in lower or "fwd init win bytes" in lower:
+        return "cicids2017"
     if "dst port" in lower or "tot fwd pkts" in lower:
         return "cicids2018"
     if "destination port" in lower or "total fwd packets" in lower:
@@ -76,7 +79,7 @@ def load_csv_table(path: str | Path, max_files: int | None = None) -> pd.DataFra
     frames = []
     for fp in files:
         logger.info("Loading %s", fp)
-        part = pd.read_csv(fp, low_memory=False)
+        part = pd.read_csv(fp, low_memory=False, encoding="utf-8-sig")
         frames.append(normalize_label_column(part))
     df = pd.concat(frames, ignore_index=True)
     if df.empty:

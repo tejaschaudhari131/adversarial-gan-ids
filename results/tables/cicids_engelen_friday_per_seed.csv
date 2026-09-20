@@ -1,0 +1,4 @@
+seed,dataset,model,attack,defense,eps,clean_accuracy,adversarial_accuracy,accuracy_drop,evasion_rate,attack_success_rate,mean_l2_perturbation,mean_linf_perturbation,label
+42,cicids2017,mlp,fgsm,none,0.15,0.992,0.5225,0.46950000000000003,1.0,1.0,0.9604595899581909,0.15000003576278687,cicids2017/mlp/fgsm/ε=0.15
+42,cicids2017,mlp,pgd,none,0.15,0.992,0.5225,0.46950000000000003,1.0,1.0,0.9019365310668945,0.15000002086162567,cicids2017/mlp/pgd/ε=0.15
+42,cicids2017,mlp,gan,none,0.15,0.992,0.5225,0.46950000000000003,1.0,1.0,0.4170496463775635,0.1089901402592659,cicids2017/mlp/gan/ε=0.15
