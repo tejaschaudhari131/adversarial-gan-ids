@@ -13,10 +13,7 @@ UNSW-NB15 / CSE-CIC-IDS2018 schemas), then attacks them with:
 
 and defends with **PGD adversarial training**.
 
-This is a rebuild and research upgrade of
-[tejaschaudhari131/adversarial-gan-ids](https://github.com/tejaschaudhari131/adversarial-gan-ids).
-It is an **evaluation tool on already-extracted flow vectors**, not a live
-packet exploit kit.
+.
 
 ## Research question
 
