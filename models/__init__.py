@@ -1,4 +1,3 @@
-from .ids_model import build_ids_model
-from .generator import build_generator
-from .discriminator import build_discriminator
-from .advanced_ids_model import build_advanced_ids_model, compile_ids_model
+from .discriminator import Discriminator, build_discriminator
+from .generator import Generator, apply_perturbation, build_generator
+from .ids_model import IDSNet, build_ids_model

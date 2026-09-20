@@ -1,21 +1,35 @@
-import tensorflow as tf
-from tensorflow.keras import layers
+"""Deep learning IDS: binary MLP that scores P(attack)."""
 
-def build_ids_model(input_dim=128, num_classes=2):
-    model = tf.keras.Sequential()
-    
-    # Input layer
-    model.add(layers.InputLayer(input_shape=(input_dim,)))
-    
-    # Fully connected layers
-    model.add(layers.Dense(512, activation='relu'))
-    model.add(layers.Dense(256, activation='relu'))
-    
-    # Output layer for binary classification (normal or attack)
-    model.add(layers.Dense(num_classes, activation='softmax'))
+from __future__ import annotations
 
-    return model
+import torch
+from torch import nn
 
-if __name__ == "__main__":
-    ids_model = build_ids_model()
-    ids_model.summary()
+
+class IDSNet(nn.Module):
+    def __init__(self, input_dim: int, hidden: tuple[int, ...] = (128, 64), dropout: float = 0.35):
+        super().__init__()
+        layers: list[nn.Module] = []
+        prev = input_dim
+        for h in hidden:
+            layers.extend(
+                [
+                    nn.Linear(prev, h),
+                    nn.BatchNorm1d(h),
+                    nn.ReLU(),
+                    nn.Dropout(dropout),
+                ]
+            )
+            prev = h
+        layers.append(nn.Linear(prev, 1))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x).squeeze(-1)
+
+    def attack_prob(self, x: torch.Tensor) -> torch.Tensor:
+        return torch.sigmoid(self.forward(x))
+
+
+def build_ids_model(input_dim: int, **kwargs) -> IDSNet:
+    return IDSNet(input_dim=input_dim, **kwargs)

@@ -1,27 +1,43 @@
-import tensorflow as tf
-from tensorflow.keras import layers
+"""Conditional generator: attack flow + noise -> bounded feature perturbation."""
 
-def build_generator(input_dim=100, output_dim=128):
-    model = tf.keras.Sequential()
-    
-    # Input: random noise (latent space)
-    model.add(layers.InputLayer(input_shape=(input_dim,)))
-    
-    # Fully connected layers
-    model.add(layers.Dense(256))
-    model.add(layers.LeakyReLU(alpha=0.2))
-    
-    model.add(layers.Dense(512))
-    model.add(layers.LeakyReLU(alpha=0.2))
-    
-    model.add(layers.Dense(1024))
-    model.add(layers.LeakyReLU(alpha=0.2))
-    
-    # Output: synthetic network traffic data
-    model.add(layers.Dense(output_dim, activation='tanh'))
+from __future__ import annotations
 
-    return model
+import torch
+from torch import nn
 
-if __name__ == "__main__":
-    generator = build_generator()
-    generator.summary()
+
+class Generator(nn.Module):
+    """G(x_attack, z) produces a perturbation in [-eps, eps] on every feature."""
+
+    def __init__(self, feature_dim: int, latent_dim: int = 32, hidden: int = 256, eps: float = 0.25):
+        super().__init__()
+        self.eps = eps
+        self.net = nn.Sequential(
+            nn.Linear(feature_dim + latent_dim, hidden),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(hidden, hidden),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(hidden, hidden // 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(hidden // 2, feature_dim),
+            nn.Tanh(),
+        )
+
+    def forward(self, x: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
+        delta = self.net(torch.cat([x, z], dim=1)) * self.eps
+        return delta
+
+
+def apply_perturbation(
+    x: torch.Tensor,
+    delta: torch.Tensor,
+    mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Add masked perturbation and clip back to the scaled [0, 1] feature cube."""
+    if mask is not None:
+        delta = delta * mask.view(1, -1)
+    return torch.clamp(x + delta, 0.0, 1.0)
+
+
+def build_generator(feature_dim: int, latent_dim: int = 32, eps: float = 0.25) -> Generator:
+    return Generator(feature_dim=feature_dim, latent_dim=latent_dim, eps=eps)

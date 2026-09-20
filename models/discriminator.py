@@ -1,24 +1,25 @@
-import tensorflow as tf
-from tensorflow.keras import layers
+"""Discriminator: real benign traffic vs generator output."""
 
-def build_discriminator(input_dim=128):
-    model = tf.keras.Sequential()
-    
-    # Input: synthetic or real network traffic
-    model.add(layers.InputLayer(input_shape=(input_dim,)))
-    
-    # Fully connected layers
-    model.add(layers.Dense(512))
-    model.add(layers.LeakyReLU(alpha=0.2))
-    
-    model.add(layers.Dense(256))
-    model.add(layers.LeakyReLU(alpha=0.2))
-    
-    # Output: probability that the input is real or adversarial
-    model.add(layers.Dense(1, activation='sigmoid'))
+from __future__ import annotations
 
-    return model
+import torch
+from torch import nn
 
-if __name__ == "__main__":
-    discriminator = build_discriminator()
-    discriminator.summary()
+
+class Discriminator(nn.Module):
+    def __init__(self, input_dim: int, hidden: int = 256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(hidden, hidden // 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(hidden // 2, 1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x).squeeze(-1)
+
+
+def build_discriminator(input_dim: int, hidden: int = 256) -> Discriminator:
+    return Discriminator(input_dim=input_dim, hidden=hidden)
