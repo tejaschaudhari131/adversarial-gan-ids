@@ -21,7 +21,7 @@ models:
   - random_forest
 
 ids:
-  epochs: 3
+  epochs: 6
   batch_size: 128
   lr: 0.001
 
@@ -34,7 +34,7 @@ attacks:
     step_size: 0.03
   - name: gan
     eps: 0.15
-    epochs: 4
+    epochs: 8
     batch_size: 128
     lambda_ids: 4.0
 
@@ -42,7 +42,7 @@ defense:
   name: adv_train
   eps: 0.15
   steps: 3
-  epochs: 3
+  epochs: 5
 
 transfer:
   surrogate: mlp

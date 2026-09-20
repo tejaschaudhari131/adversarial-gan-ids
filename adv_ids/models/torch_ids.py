@@ -7,6 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from sklearn.metrics import f1_score
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -78,7 +79,7 @@ class TorchIDS(IDSModel):
 
         best_val = -1.0
         best_state = {k: v.detach().cpu().clone() for k, v in self.module.state_dict().items()}
-        self.history = {"train_loss": [], "val_acc": []}
+        self.history = {"train_loss": [], "val_acc": [], "val_f1": []}
 
         for epoch in range(1, epochs + 1):
             self.module.train()
@@ -95,15 +96,18 @@ class TorchIDS(IDSModel):
             train_loss = running / max(seen, 1)
             self.history["train_loss"].append(train_loss)
 
-            val_acc = None
+            val_acc = val_f1 = None
             if X_val is not None and y_val is not None and len(X_val) > 0:
                 pred = self.predict(X_val)
                 val_acc = float((pred == y_val).mean())
+                val_f1 = float(f1_score(y_val, pred, zero_division=0))
                 self.history["val_acc"].append(val_acc)
-                if val_acc >= best_val:
-                    best_val = val_acc
+                self.history["val_f1"].append(val_f1)
+                # F1 avoids keeping an all-attack checkpoint that looks "ok" on accuracy.
+                if val_f1 >= best_val:
+                    best_val = val_f1
                     best_state = {k: v.detach().cpu().clone() for k, v in self.module.state_dict().items()}
-            logger.info("%s epoch %d/%d loss=%.4f val_acc=%s", self.name, epoch, epochs, train_loss, val_acc)
+            logger.info("%s epoch %d/%d loss=%.4f val_acc=%s val_f1=%s", self.name, epoch, epochs, train_loss, val_acc, val_f1)
 
         if best_val >= 0:
             self.module.load_state_dict(best_state)

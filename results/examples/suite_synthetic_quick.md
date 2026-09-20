@@ -1,0 +1,14 @@
+| dataset | model | attack | defense | clean_accuracy | adversarial_accuracy | accuracy_drop | evasion_rate | attack_success_rate | mean_l2_perturbation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cicids2017 | mlp | fgsm | none | 0.9861 | 0.7444 | 0.2417 | 0.7250 | 0.7250 | 1.1971 |
+| cicids2017 | mlp | pgd | none | 0.9861 | 0.8917 | 0.0944 | 0.2833 | 0.2833 | 1.0481 |
+| cicids2017 | mlp | gan | none | 0.9861 | 0.9861 | 0.0000 | 0.0000 | 0.0000 | 0.4448 |
+| cicids2017 | mlp_advtrain | fgsm | adv_train | 0.8000 | 0.6611 | 0.1389 | 0.4202 | 0.4250 | 1.1971 |
+| cicids2017 | mlp_advtrain | pgd | adv_train | 0.8000 | 0.7194 | 0.0806 | 0.2437 | 0.2500 | 1.0455 |
+| cicids2017 | transfer:mlp->random_forest | pgd | none | 1.0000 | 0.9806 | 0.0194 | 0.0583 | 0.0583 | 0.9793 |
+| unsw_nb15 | mlp | fgsm | none | 0.9861 | 0.7417 | 0.2444 | 0.7333 | 0.7333 | 0.8606 |
+| unsw_nb15 | mlp | pgd | none | 0.9861 | 0.8806 | 0.1056 | 0.3167 | 0.3167 | 0.7583 |
+| unsw_nb15 | mlp | gan | none | 0.9861 | 0.9861 | 0.0000 | 0.0000 | 0.0000 | 0.2655 |
+| unsw_nb15 | mlp_advtrain | fgsm | adv_train | 0.8111 | 0.6806 | 0.1306 | 0.3917 | 0.3917 | 0.8606 |
+| unsw_nb15 | mlp_advtrain | pgd | adv_train | 0.8111 | 0.7417 | 0.0694 | 0.2083 | 0.2083 | 0.7555 |
+| unsw_nb15 | transfer:mlp->random_forest | pgd | none | 1.0000 | 0.7417 | 0.2583 | 0.7750 | 0.7750 | 0.7090 |

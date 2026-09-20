@@ -60,7 +60,6 @@ def evaluate_attack_on_model(
         attack_index = np.where(y_test == 1)[0]
     clean = evaluate_clean(model, X_test, y_test, results_dir=results_dir or "results")
     pred_clean = (model.predict_proba(X_test) >= 0.5).astype(int)
-    pred_adv_only = (model.predict_proba(X_adv_attack) >= 0.5).astype(int)
     X_mixed = X_test.copy()
     X_mixed[attack_index] = X_adv_attack
     pred_mixed = (model.predict_proba(X_mixed) >= 0.5).astype(int)

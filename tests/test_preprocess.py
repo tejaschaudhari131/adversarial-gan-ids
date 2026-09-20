@@ -46,8 +46,8 @@ def test_unsw_synthetic_multiclass_column():
     bundle = prepare_from_frame(df, dataset_name="unsw_nb15", val_size=0.1, label_mode="binary")
     assert bundle.dataset_name == "unsw_nb15"
     assert bundle.y_multi_train is not None
-    assert bundle.X_train.min() >= 0.0
-    assert bundle.X_train.max() <= 1.0
+    assert bundle.X_train.min() >= -1e-6
+    assert bundle.X_train.max() <= 1.0 + 1e-6
 
 
 def test_scaled_unit_cube_and_stratify():

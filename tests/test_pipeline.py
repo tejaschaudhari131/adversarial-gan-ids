@@ -26,5 +26,5 @@ def test_prepare_roundtrip(tmp_path):
     # Duplicate "Fwd Header Length.1" is dropped during cleaning (77 numeric features).
     assert data["X_train"].shape[1] == 77
     assert set(data["y_train"]).issubset({0, 1})
-    assert data["modifiable_mask"].shape == (78,)
+    assert data["modifiable_mask"].shape == (77,)
     assert (tmp_path / "art" / "scaler.joblib").is_file()

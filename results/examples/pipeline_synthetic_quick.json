@@ -1,0 +1,18 @@
+{
+  "clean_accuracy": 0.9978260869565218,
+  "clean_f1": 0.9968847352024922,
+  "clean_roc_auc": 1.0,
+  "evasion_rate": 0.9875,
+  "adversarial_accuracy": 0.6543478260869565,
+  "accuracy_drop": 0.34347826086956523,
+  "mean_abs_perturbation": 0.1439678817987442,
+  "mean_l2_perturbation": 1.455041527748108,
+  "attack_detected_before": 160,
+  "attack_detected_after": 2,
+  "n_attack_test": 160,
+  "mean_p_attack_after": 0.1730959564447403,
+  "dataset": "cicids2017",
+  "model": "mlp",
+  "attack": "gan",
+  "synthetic": true
+}

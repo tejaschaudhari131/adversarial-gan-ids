@@ -17,4 +17,4 @@ exclude = [".git", ".venv", "artifacts", "results", "data"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W"]
-ignore = ["E501"]
+ignore = ["E501", "E402"]

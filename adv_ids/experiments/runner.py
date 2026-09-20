@@ -302,7 +302,6 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
 
             for raw_atk in config.get("attacks", ["fgsm", "pgd"]):
                 atk = _normalize_attack_cfg(raw_atk)
-                tag = f"{model.name}_{atk['name']}"
                 try:
                     X_adv = _craft(atk, model, X_attack, mask, data, model_art, gan_cache)
                 except TypeError as exc:
@@ -412,12 +411,14 @@ def run_experiment_suite(config: dict[str, Any] | str | Path, root: str | Path =
 
     save_attack_comparison(comparison_rows, out_root / "attack_comparison.png")
     if transfer_rows:
-        surrogates = sorted({r["surrogate"] for r in transfer_rows})
-        targets = sorted({r["target"] for r in transfer_rows})
-        mat = np.zeros((len(surrogates), len(targets)))
+        row_labels = sorted({f"{r['dataset']}/{r['surrogate']}" for r in transfer_rows})
+        col_labels = sorted({r["target"] for r in transfer_rows})
+        mat = np.zeros((len(row_labels), len(col_labels)))
         for r in transfer_rows:
-            mat[surrogates.index(r["surrogate"]), targets.index(r["target"])] = r["evasion_rate"]
-        save_transfer_heatmap(mat, surrogates, targets, out_root / "transfer_heatmap.png")
+            i = row_labels.index(f"{r['dataset']}/{r['surrogate']}")
+            j = col_labels.index(r["target"])
+            mat[i, j] = r["evasion_rate"]
+        save_transfer_heatmap(mat, row_labels, col_labels, out_root / "transfer_heatmap.png")
 
     payload = {
         "name": run_name,
